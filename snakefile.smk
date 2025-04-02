@@ -1,4 +1,4 @@
-from lib2to3.pgen2.tokenize import group
+#from lib2to3.pgen2.tokenize import group
 
 #from poetry.utils.helpers import directory
 
@@ -59,7 +59,8 @@ def validate_config(config):
     # Check if 'group' is one of the allowed values
     allowed_groups = {"16S_bac", "18S_nem", "ITS_fungi"}
     if config["group"] not in allowed_groups:
-        raise ValueError(f"Parameter 'group' must be one of {allowed_groups}. Found: {config['group']}")
+        raise ValueError(f"Parameter 'group' must be one of {allowed_groups}, mind that this is case sensitive. "
+                         f"Found: {config['group']}")
 
 # Call the validation function
 print(config)
@@ -68,35 +69,7 @@ validate_config(config)
 if not config.get("clustering", True):  # Defaults to True if not specified
     print("Clustering is set to False")
 
-#specify which database to download
-# group_db = ""
-# if config["group"] == "18S_nem":
-#     group_db = "18S_NEM_db"
-# elif config["group"] == "16S_bac":
-#     group_db = "16S_silva_full"
-# elif config["group"] == "ITS_fungi":
-#     group_db = "UNITE_ITS_emu"
-
-# rule download_github_folder:
-#     output:
-#         directory(f"{group_db}")
-#     params:
-#         repo_url="https://git.wur.nl/robbert.vanhimbeeck/nemmap",
-#         branch="snakemake",
-#         folder=f"{group_db}"
-#     shell:
-#         """
-#         git init
-#         git remote add origin {params.repo_url}
-#         git config core.sparseCheckout true
-#         echo "{params.folder}" >> .git/info/sparse-checkout
-#         git pull origin {params.branch}
-#         rm -rf .git
-#         """
-#
-#fastq_files = glob_wildcards("/demux_clean/{fastq}") #specify wildcards for demultiplexed fastqs
-
-def read_barcodes(barcode_file):
+def read_barcodes(barcode_file): #function to parse barcodes from barcode file
     with open(barcode_file) as f:
         return [line.strip() for line in f if line.strip()]  # Remove empty lines
 
@@ -106,16 +79,36 @@ barcodes = read_barcodes(barcode_file)
 
 rule all:
     input:
-        expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
-        expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
-        expand("emu_input/{barcode}.emu",barcode=barcodes),
-        expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
-        "results/emu-combined-{}-counts.tsv".format(config["rank"]),
-        "results/emu-combined-{}-counts.tsv".format(config["rank"])
+        "{}.zip".format(config["group"])
+        # expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
+        # expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
+        # expand("emu_input/{barcode}.emu",barcode=barcodes),
+        # expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
+        # "results/emu-combined-{}-counts.tsv".format(config["rank"]),
+        # "results/emu-combined-{}-counts.tsv".format(config["rank"])
+
+#select correct database url
+url = ""
+
+if config["group"] == "18S_nem":
+    url = "https://www.dropbox.com/scl/fi/ssha52evwtmxwyyxxc59e/18S_nem.zip?rlkey=22ossdxbcd8pfnooay57sv602&st=9ympsl4c&dl=1"
+elif config["group"] == "16S_bac":
+    url = "https://www.dropbox.com/scl/fi/bbjrvmmfxbhrdjjczlkvf/16S_silva.zip?rlkey=hc1r84dg9o55t828d5ifsatg7&st=ims1kn09&dl=1"
+elif config["group"] == "ITS_fungi":
+    url = "https://www.dropbox.com/scl/fi/bbjrvmmfxbhrdjjczlkvf/16S_silva.zip?rlkey=hc1r84dg9o55t828d5ifsatg7&st=u1n4g262&dl=0"
 
 
 
-
+rule download_database:
+    output:
+        "{}.zip".format(config["group"])
+    params:
+        url = f"{url}",
+        group = config["group"]
+    shell:
+        """
+        wget -O {params.group}.zip "{params.url}"
+        """
 
 if config.get("demultiplex", None) is True:  # Only run if demultiplexing is enabled
     rule demultiplex:
