@@ -12,3 +12,11 @@ threads: 2
 group: 16S_bac
 barcode_file: barcode_files.txt
 input_file: test_dataset_16S.fastq
+forward_primer: 
+reverse_primer:
+
+
+####metabarcoding primers#####
+#18S nematodes (van himbeeck et al.) - forward primer: ctcaaagattaagccatgc; reverse primer: gctaccttgttacgactttt
+#16S bacteria - forward primer: AGAGTTTGATCMTGGCTCAG; reverse primer: -----------------------
+#note that ITS primer trimming is not needed due to ITS extraction with ITS extract
