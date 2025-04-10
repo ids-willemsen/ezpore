@@ -185,15 +185,7 @@ if config.get("trim_primers", None) is False and config.get("clustering", None) 
             cp {input} {output}
             """
 #Set primer pairs based on group in settingsfile
-primerstring = ""
 
-if config["group"] == "16S_bac":
-    primerstring = "--front AGAGTTTGATCMTGGCTCAG --front CGGTTACCTTGTTACGACTT --adapter CTGAGCCAKGATCAAACTCT --adapter " \
-                   "AAGTCGTAACAAGGTAACCG"
-
-elif config["group"] == "18S_nem":
-    primerstring = "--front ctcaaagattaagccatgc --front aaaagtcgtaacaaggtagc --adapter gctaccttgttacgactttt " \
-                   "--adapter gcatggcttaatctttgag"
 
 if config.get("trim_primers", None) is True:
     rule primer_trimming: #trimps primers with cutadapt
@@ -206,11 +198,12 @@ if config.get("trim_primers", None) is True:
         params:
             primer_error_rate = config["primer_error_rate"],
             threads = config["threads"],
-            primer_string = f"{primerstring}"
+            fw_primer = config["forward_primer"],
+            rv_primer = config["reverse_primer"]
         shell:
             """
             cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {params.threads} \
-            {params.primer_string} --times 2 --quiet {input.fastq} > {output}
+            -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output}
             """
 
     if config.get("clustering", None) is True:
