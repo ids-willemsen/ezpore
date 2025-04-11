@@ -2,7 +2,7 @@
 
 # ezpore
 
-Authors: Robbert van Himbeeck, Ids Willemsen
+Authors: Robbert van Himbeeck, Ids Willemsen (shared first-author)
 
 ## About
 
