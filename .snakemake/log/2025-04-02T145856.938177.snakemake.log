@@ -1,0 +1,28 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 12
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job                  count
+-----------------  -------
+all                      1
+download_database        1
+total                    2
+
+Select jobs to execute...
+
+[Wed Apr  2 14:58:57 2025]
+rule download_database:
+    output: databases/16S_bac.zip
+    jobid: 1
+    reason: Missing output files: databases/16S_bac.zip
+    resources: tmpdir=/tmp
+
+Waiting at most 5 seconds for missing files.
+MissingOutputException in rule download_database in file /home/wille182/git/ezmap/ezmap/snakefile.smk, line 93:
+Job 1  completed successfully, but some output files are missing. Missing files after 5 seconds. This might be due to filesystem latency. If that is the case, consider to increase the wait time with --latency-wait:
+databases/16S_bac.zip
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2025-04-02T145856.938177.snakemake.log

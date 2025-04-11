@@ -77,15 +77,23 @@ barcode_file = config["barcode_file"]
 # Load barcodes
 barcodes = read_barcodes(barcode_file)
 
+rule_all_classifier = list()
+
+if config["classifier"] == emu:
+    rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
+    rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
+
+#if config["classifier"] == vsearch:
+#   etc
+
 rule all:
     input:
-        "{}.zip".format(config["group"])
-        # expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
-        # expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
-        # expand("emu_input/{barcode}.emu",barcode=barcodes),
-        # expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
-        # "results/emu-combined-{}-counts.tsv".format(config["rank"]),
-        # "results/emu-combined-{}-counts.tsv".format(config["rank"])
+        "{}.zip".format(config["group"]),
+        expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
+        expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
+        expand("classifier_input/{barcode}",barcode=barcodes),
+        expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
+        rule_all_classifier
 
 #select correct database url
 url = ""
@@ -177,7 +185,7 @@ if config.get("trim_primers", None) is False and config.get("clustering", None) 
         input:
             "filtered/filtered_{barcode}.fastq"
         output:
-            "emu_input/filtered_{barcode}.emu"
+            "classifier_input/filtered_{barcode}"
         conda:
             "nemmap_conda.yaml"
         shell:
@@ -223,7 +231,7 @@ if config.get("trim_primers", None) is True:
             input:
                 "trimmed/trimmed_{barcode}.fastq"
             output:
-                "emu_input/{barcode}.emu"
+                "classifier_input/{barcode}"
             conda:
                 "nemmap_conda.yaml"
             shell:
@@ -257,15 +265,13 @@ if config.get("trim_primers", None) is True:
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
             output:
-                "emu_input/{barcode}.emu"
+                "classifier_input/{barcode}"
             conda:
                 "nemmap_conda.yaml"
             shell:
                 """
                 cp {input} {output}
                 """
-
-
 
 
 if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range between 0-1,
@@ -301,7 +307,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
         input:
             "clustered_rerep/rerep_clustered_{barcode}.fasta"
         output:
-            "emu_input/{barcode}.emu"
+            "classifier_input/{barcode}"
         conda:
             "nemmap_conda.yaml"
         shell:
@@ -321,36 +327,37 @@ elif config["group"] == "18S_nem":
 elif config["group"] == "ITS_fungi":
     database_path = "UNITE_ITS_emu/"
 
-rule emu: #runs emu
-    input:
-        fasta = "emu_input/{barcode}.emu",
-        db_path = database_path
-    output:
-        "results/{barcode}_rel-abundance.tsv",
-    params:
-        threads = config["threads"],
-        min_abundance = config["min_abundance"]
-    conda:
-        "nemmap_conda.yaml"
-    shell:
-        """
-        emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
-			--type map-ont --threads {params.threads}
-        """
+if config["classifier"] == "emu"
+    rule emu: #runs emu
+        input:
+            fasta = "clasifier_input/{barcode}",
+            db_path = database_path
+        output:
+            "results/{barcode}_rel-abundance.tsv",
+        params:
+            threads = config["threads"],
+            min_abundance = config["min_abundance"]
+        conda:
+            "nemmap_conda.yaml"
+        shell:
+            """
+            emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
+                --type map-ont --threads {params.threads}
+            """
 
-rule emu_combine: #combines results into the final OTU table
-    input:
-        expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
-    output:
-        "results/emu-combined-{}-counts.tsv".format(config["rank"]),
-        "results/emu-combined-{}.tsv".format(config["rank"])
-    params:
-        rank = config["rank"]
-    conda:
-        "nemmap_conda.yaml"
-    shell:
-        """
-        emu combine-outputs results {params.rank} --counts
-        emu combine-outputs results {params.rank}
-        """
+    rule emu_combine: #combines results into the final OTU table
+        input:
+            expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
+        output:
+            "results/emu-combined-{}-counts.tsv".format(config["rank"]),
+            "results/emu-combined-{}.tsv".format(config["rank"])
+        params:
+            rank = config["rank"]
+        conda:
+            "nemmap_conda.yaml"
+        shell:
+            """
+            emu combine-outputs results {params.rank} --counts
+            emu combine-outputs results {params.rank}
+            """
 

@@ -1,0 +1,3 @@
+ModuleNotFoundError in file /home/wille182/git/ezmap/ezmap/snakefile.smk, line 1:
+No module named 'lib2to3'
+  File "/home/wille182/git/ezmap/ezmap/snakefile.smk", line 1, in <module>

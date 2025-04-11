@@ -1,4 +1,4 @@
-demultiplex: True
+demultiplex: True 
 min: 100
 max: 10000
 quality: 15
@@ -9,11 +9,12 @@ clustering: True
 cluster_perc: 0.97
 rank: species
 threads: 2
-group: 16S_bac
+group: 16S_bac #18_nem, 16S_bac or ITS_fungi
 barcode_file: barcode_files.txt
 input_file: test_dataset_16S.fastq
 forward_primer: 
 reverse_primer:
+classifier: emu #emu or vsearch
 
 
 ####metabarcoding primers#####
