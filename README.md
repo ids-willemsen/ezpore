@@ -1,16 +1,16 @@
-![image info](nemmap.png){width=35%}
+![image info](ezpore.png){width=35%}
 
-# NEmatology Minion Microbial Analysis Pipeline (nemmap)
+# ezpore
 
 Authors: Robbert van Himbeeck, Ids Willemsen
 
 ## About
 
-**`nemmap` is still in the test phase, please use with caution.**
+**`ezpore` is still in the test phase, please use with caution.**
 
-`nemmap` is a single-command pipeline to process bacterial (full 16S), fungal (full ITS) or Nematodal (full 18S) reads obtained by Nanopore sequencing. This pipeline is developed and intended for internal use by the Laboratory of Nematology (WUR). 
+`ezpore` is a single-command pipeline to process bacterial (full 16S), fungal (full ITS) or Nematodal (full 18S) reads obtained by Nanopore sequencing. This pipeline is developed and intended for internal use by the Laboratory of Nematology (WUR). 
 
-`nemmap` can perform following steps:
+`ezpore` can perform following steps:
 
 1) demultiplexing (dorado, barcoding kit EXP-NBD196)
 2) filtering on length and quality (NanoFilt)
@@ -19,7 +19,7 @@ Authors: Robbert van Himbeeck, Ids Willemsen
 5) cluster reads (vsearch)
 6) read classification (emu)
 
-![image info](Nemmap_Diagram.png){width=70%}
+![image info](ezpore_Diagram.png){width=70%}
 
 
 
@@ -34,15 +34,15 @@ More information about `decona` can be found here: https://github.com/Saskia-Oos
 
 ## Installation & prerequisites
 
-`nemmap` is developed for Linux operating systems and will likely also work on other Unix-like OS (e.g. MacOS) but this has not been tested. 
+`ezpore` is developed for Linux operating systems and will likely also work on other Unix-like OS (e.g. MacOS) but this has not been tested. 
 
 Usage on Windows is not supported, however Windows Subsystem for Linux (WSL) can be used (see section "WSL installation instructions").
 
 Be aware that running on windows takes way longer than on a Linux machine!
 
-### nemmap installation instructions
+### ezpore installation instructions
 
-To use `nemmap`, `conda` needs to be installed on your system. To install `conda` perform following steps:
+To use `ezpore`, `conda` needs to be installed on your system. To install `conda` perform following steps:
 
 1) 
 ```
@@ -56,15 +56,15 @@ navigate trough the interactive installation shell: Choose **yes** by “Do you 
    
 3) open a new terminal, (base) will appearing at the beginning of every rule.
 
-To install `nemmap`:
+To install `ezpore`:
 
 1) download the whole repository, or clone it in your directory using:
 ```
-git clone https://git.wur.nl/robbert.vanhimbeeck/nemmap
+git clone https://git.wur.nl/robbert.vanhimbeeck/ezpore
 ```
-2) enter the nemmap directory by:
+2) enter the ezpore directory by:
 ```
-cd nemmap 
+cd ezpore 
 ```
 Check the content.
 
@@ -77,10 +77,10 @@ Run the file by running:
 After finishing you can check if the install worked by running 
 
 ```
-conda activate nemmap
+conda activate ezpore
 ```
 
-If you now see (nemmap) in stead of (base) in the front of the rule, the environment was succesfully created.
+If you now see (ezpore) in stead of (base) in the front of the rule, the environment was succesfully created.
 
 _note:_ 
 Make sure that you've also downloaded/cloned the required reference databases. For 16S bacteria, the "16S_silva_full" folder can be downloaded and for ITS bacteria the "UNITE_ITS_emu" folder, both contains 3 files.
@@ -117,7 +117,7 @@ sudo bash -c 'echo "[network]" > /etc/wsl.conf'
 sudo bash -c 'echo "generateResolvConf = false" >> /etc/wsl.conf'
 sudo chattr +i /etc/resolv.conf
 ```
-4) follow the steps of section "nemmap installation instructions".
+4) follow the steps of section "ezpore installation instructions".
 
 
 
@@ -125,28 +125,28 @@ sudo chattr +i /etc/resolv.conf
 
 ### Your environment and folder
 
-Always make sure the `conda` environment `nemmap` is activated before you run the analysis. 
+Always make sure the `conda` environment `ezpore` is activated before you run the analysis. 
 1) run to activate the environment 
 ```
-conda activate nemmap
+conda activate ezpore
 ```
-2) go and make a folder (e.g. nemmap_analysis_1) where you do the analysis by 
+2) go and make a folder (e.g. ezpore_analysis_1) where you do the analysis by 
 ```
-mkdir nemmap_analysis_1 && cd nemmap_analysis_1
+mkdir ezpore_analysis_1 && cd ezpore_analysis_1
 ```
 This folder should contain following items:
 
-1) a single input .fastq file containing basecalled data, e.g. calls.fastq from the basecalling (if demultiplexing is required) **OR** if your data is already demultiplexed, the data should be in a folder called "demultiplexed". **Note: If you have more than 96 samples, you should demultiplex the samples and rename the barcode fastq files to your sample names before running nemmap. You can then put the fastq files with your sample names in the "demultiplexed" folder and run `nemmap` without demultiplexing.**
+1) a single input .fastq file containing basecalled data, e.g. calls.fastq from the basecalling (if demultiplexing is required) **OR** if your data is already demultiplexed, the data should be in a folder called "demultiplexed". **Note: If you have more than 96 samples, you should demultiplex the samples and rename the barcode fastq files to your sample names before running ezpore. You can then put the fastq files with your sample names in the "demultiplexed" folder and run `ezpore` without demultiplexing.**
 
-2) the `settingsfile.txt` file, which contains the settings nemmap will use in your run.
+2) the `settingsfile.txt` file, which contains the settings ezpore will use in your run.
 
 3) the `barcode_files.txt` file, which specifies the barcodes that are included in your run. 
 Change the content of the file to your own needs, so indicate witch barcodes you used! Don't change the formatting!
 
 
-### `nemmap` usage and settingsfile
+### `ezpore` usage and settingsfile
  
-The `nemmap` pipeline is run using the `nem` command followed by the location of your `settingsfile.txt`. For example, if you run nemmap from the folder that contains your settingsfile the usage would be: 
+The `ezpore` pipeline is run using the `nem` command followed by the location of your `settingsfile.txt`. For example, if you run ezpore from the folder that contains your settingsfile the usage would be: 
 
 ```
 nem settingsfile.txt
@@ -154,9 +154,9 @@ nem settingsfile.txt
 
 # The settingsfile
 
-The settingsfile.txt contains all possible arguments that can be used by nemmap. Examples of how to use the settingsfile.txt for both demultiplexed and non-demultiplexed data, different organisms and other settings are given in each testrun folder. 
+The settingsfile.txt contains all possible arguments that can be used by ezpore. Examples of how to use the settingsfile.txt for both demultiplexed and non-demultiplexed data, different organisms and other settings are given in each testrun folder. 
 
-If demultiplexing is required (`-demultiplex TRUE`), the input file of `nemmap` should be a single .fastq file containing all data.
+If demultiplexing is required (`-demultiplex TRUE`), the input file of `ezpore` should be a single .fastq file containing all data.
 
 If your data is already demultiplexed (`-demultiplex FALSE`), this data should be present in the directory in a folder named "demultiplexed". 
 The demultiplexed files within this folder, should be named as "barcodeXX.fastq", where XX has to be substituted by the correct barcode number. For example: barcode01.fastq or barcode21.fastq. (This feature is not tested yet). 
@@ -196,7 +196,7 @@ It is strongly adviced to run the script with with both the 16S and ITS test dat
 
 ### Test run for 16S
 
-From the nemmap installation folder, go into the `testrun_bacteria` directory with
+From the ezpore installation folder, go into the `testrun_bacteria` directory with
 ```
 cd testrun_bacteria
 ```
@@ -210,7 +210,7 @@ To start the testrun on the 16S dataset you can use the following command:
 nem settingsfile.txt
 ```
 ### Test run for ITS
-From the nemmap installation folder, go into the `testrun_bacteria` directory with
+From the ezpore installation folder, go into the `testrun_bacteria` directory with
 ```
 cd testrun_fungi
 ```
@@ -219,7 +219,7 @@ The `barcode58.fastq` file is already demultiplexed and contains only the data o
 
 Please note!
 As the data is already demultiplexed, the `barcode58.fastq` file is inside a folder called "demultiplexed". 
-When running the script, nemmap will ask you to confirm this. Type 'yes' when asked. 
+When running the script, ezpore will ask you to confirm this. Type 'yes' when asked. 
 
 The `settingsfile.txt` located in the same folder contains our suggested settings to analyze this dataset. 
 
