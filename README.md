@@ -1,4 +1,4 @@
-![image info](ezpore.png){width=35%}
+<img src="ezpore.png" alt="image info" width="35%">
 
 # ezpore
 
@@ -19,8 +19,7 @@ Authors: Robbert van Himbeeck, Ids Willemsen
 5) cluster reads (vsearch)
 6) read classification (emu)
 
-![image info](ezpore_Diagram.png){width=70%}
-
+<img src="ezpore_Diagram.png" alt="image info" width="70%">
 
 
 Chimera detection and removal will be incorporated in the future.
