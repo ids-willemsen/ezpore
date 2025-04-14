@@ -77,45 +77,50 @@ barcode_file = config["barcode_file"]
 # Load barcodes
 barcodes = read_barcodes(barcode_file)
 
+#only add rules when emu/vsearch is selected
 rule_all_classifier = list()
 
-if config["classifier"] == emu:
+if config["classifier"] == "emu":
     rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
-    rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
-
+    #rule_all_classifier.append(expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes))
 #if config["classifier"] == vsearch:
 #   etc
 
 rule all:
     input:
-        "{}.zip".format(config["group"]),
+        "{}".format(config["group"]),
         expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
         expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
-        expand("classifier_input/{barcode}",barcode=barcodes),
-        expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes),
+        expand("classifier_input/{barcode}.fasta",barcode=barcodes),
         rule_all_classifier
 
 #select correct database url
 url = ""
 
 if config["group"] == "18S_nem":
-    url = "https://www.dropbox.com/scl/fi/ssha52evwtmxwyyxxc59e/18S_nem.zip?rlkey=22ossdxbcd8pfnooay57sv602&st=9ympsl4c&dl=1"
+    url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
+    =ujkcvtae&dl=1"
 elif config["group"] == "16S_bac":
-    url = "https://www.dropbox.com/scl/fi/bbjrvmmfxbhrdjjczlkvf/16S_silva.zip?rlkey=hc1r84dg9o55t828d5ifsatg7&st=ims1kn09&dl=1"
+    url = "https://www.dropbox.com/scl/fi/1fwfdt3exuibv3y1z40h5/16S_bac.zip?rlkey=o3tquqpttgjyzhjpsizusa0mq&st\
+    =gzxlq7w3&dl=1"
 elif config["group"] == "ITS_fungi":
-    url = "https://www.dropbox.com/scl/fi/bbjrvmmfxbhrdjjczlkvf/16S_silva.zip?rlkey=hc1r84dg9o55t828d5ifsatg7&st=u1n4g262&dl=0"
+    url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
+    =tehvlq24&dl=1"
 
 
 
 rule download_database:
     output:
-        "{}.zip".format(config["group"])
+        directory("{}".format(config["group"]))
+    conda:
+        "ezpore_conda.yaml"
     params:
         url = f"{url}",
         group = config["group"]
     shell:
         """
         wget -O {params.group}.zip "{params.url}"
+        unzip {params.group}.zip
         """
 
 if config.get("demultiplex", None) is True:  # Only run if demultiplexing is enabled
@@ -170,7 +175,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
     output:
         "filtered/filtered_{barcode}.fastq"
     conda:
-        "nemmap_conda.yaml"
+        "ezpore_conda.yaml"
     params:
         min_length = config["min"],
         max_length = config["max"],
@@ -185,9 +190,9 @@ if config.get("trim_primers", None) is False and config.get("clustering", None) 
         input:
             "filtered/filtered_{barcode}.fastq"
         output:
-            "classifier_input/filtered_{barcode}"
+            "classifier_input/filtered_{barcode}.fasta"
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             cp {input} {output}
@@ -202,7 +207,7 @@ if config.get("trim_primers", None) is True:
         output:
             "trimmed/trimmed_{barcode}.fastq"
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         params:
             primer_error_rate = config["primer_error_rate"],
             threads = config["threads"],
@@ -221,7 +226,7 @@ if config.get("trim_primers", None) is True:
             output:
                 temp("vsearch_input/{barcode}.fastq")
             conda:
-                "nemmap_conda.yaml"
+                "ezpore_conda.yaml"
             shell:
                 """
                 cp {input} {output}
@@ -231,9 +236,9 @@ if config.get("trim_primers", None) is True:
             input:
                 "trimmed/trimmed_{barcode}.fastq"
             output:
-                "classifier_input/{barcode}"
+                "classifier_input/{barcode}.fasta"
             conda:
-                "nemmap_conda.yaml"
+                "ezpore_conda.yaml"
             shell:
                 """
                 cp {input} {output}
@@ -265,9 +270,9 @@ if config.get("trim_primers", None) is True:
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
             output:
-                "classifier_input/{barcode}"
+                "classifier_input/{barcode}.fasta"
             conda:
-                "nemmap_conda.yaml"
+                "ezpore_conda.yaml"
             shell:
                 """
                 cp {input} {output}
@@ -284,7 +289,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             cluster_perc = config["cluster_perc"],
             threads = config["threads"]
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
@@ -297,7 +302,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
         output:
             "clustered_rerep/rerep_clustered_{barcode}.fasta"
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             vsearch --rereplicate {input} --relabel sequence --output {output}
@@ -307,9 +312,9 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
         input:
             "clustered_rerep/rerep_clustered_{barcode}.fasta"
         output:
-            "classifier_input/{barcode}"
+            "classifier_input/{barcode}.fasta"
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             cp {input} {output}
@@ -319,26 +324,18 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
 #options: 1. vsearch - ezpz; 2. no vsearch, ITS extract; 3. no vsearch, trim primers; 4. no vsearch, no primer trimming
 
 
-database_path = "" #sets correct database path for analysis with emu
-if config["group"] == "16S_bac":
-    database_path = "16S_silva_full/"
-elif config["group"] == "18S_nem":
-    database_path = "18S_NEM_db/"
-elif config["group"] == "ITS_fungi":
-    database_path = "UNITE_ITS_emu/"
-
-if config["classifier"] == "emu"
+if config["classifier"] == "emu":
     rule emu: #runs emu
         input:
-            fasta = "clasifier_input/{barcode}",
-            db_path = database_path
+            fasta = "clasifier_input/{barcode}.fasta",
+            db_path = config["group"]
         output:
             "results/{barcode}_rel-abundance.tsv",
         params:
             threads = config["threads"],
             min_abundance = config["min_abundance"]
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
@@ -354,7 +351,7 @@ if config["classifier"] == "emu"
         params:
             rank = config["rank"]
         conda:
-            "nemmap_conda.yaml"
+            "ezpore_conda.yaml"
         shell:
             """
             emu combine-outputs results {params.rank} --counts
