@@ -57,7 +57,7 @@ def validate_config(config):
         raise ValueError("Parameter 'primer_error_rate' should be between 0 and 1.")
 
     # Check if 'group' is one of the allowed values
-    allowed_groups = {"16S_bac", "18S_nem", "ITS_fungi"}
+    allowed_groups = {"16S_bac", "18S_nem", "ITS_fun"}
     if config["group"] not in allowed_groups:
         raise ValueError(f"Parameter 'group' must be one of {allowed_groups}, mind that this is case sensitive. "
                          f"Found: {config['group']}")
@@ -117,7 +117,8 @@ rule download_database:
     params:
         url = f"{url}",
         group = config["group"]
-    log: "logs/download_database.log"
+    log:
+        "logs/download_database.log"
     shell:
         """
         wget -O {params.group}.zip "{params.url}"
@@ -135,7 +136,8 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
         params:
             demux_dir = "demux"
         threads: config["threads"]
-        log: "logs/demultiplex.log"
+        log:
+            "logs/demultiplex.log"
         shell:
             """
             wget https://cdn.oxfordnanoportal.com/software/analysis/dorado-0.8.3-linux-x64.tar.gz
@@ -179,7 +181,8 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         "filtered/filtered_{barcode}.fastq"
     conda:
         "ezpore_conda.yaml"
-    log: "logs/nanofilt.log"
+    log:
+        "logs/nanofilt_{barcode}.log"
     params:
         min_length = config["min"],
         max_length = config["max"],
@@ -212,7 +215,8 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                 "trimmed/trimmed_{barcode}.fastq"
             conda:
                 "ezpore_conda.yaml"
-            log: "logs/cutadapt.log"
+            log:
+                "logs/cutadapt_{barcode}.log"
             params:
                 primer_error_rate = config["primer_error_rate"],
                 threads = config["threads"],
@@ -250,7 +254,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                     """
 
 
-if config["group"] == "ITS_fungi": #extracts ITS for fungi
+if config["group"] == "ITS_fun": #extracts ITS for fungi
     rule ITSexpress:
         input:
             fastq = "filtered/filtered_{barcode}.fastq"
@@ -258,7 +262,10 @@ if config["group"] == "ITS_fungi": #extracts ITS for fungi
             "ITS_extract/ITS_{barcode}.fastq"
         params:
             threads = config["threads"]
-        log: "logs/itsexpress.log"
+        conda:
+            "ezpore_conda.yaml"
+        log:
+            "logs/itsexpress_{barcode}.log"
         shell:
             "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
 
@@ -297,7 +304,8 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             threads = config["threads"]
         conda:
             "ezpore_conda.yaml"
-        log: "logs/vsearch_cluster.log"
+        log:
+            "logs/vsearch_cluster_{barcode}.log"
         shell:
             """
             vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
@@ -311,7 +319,8 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             "clustered_rerep/rerep_clustered_{barcode}.fasta"
         conda:
             "ezpore_conda.yaml"
-        log: "logs/vsearch_rereplicate.log"
+        log:
+            "logs/vsearch_rereplicate_{barcode}.log"
         shell:
             """
             vsearch --rereplicate {input} --relabel sequence --output {output}
@@ -345,7 +354,8 @@ if config["classifier"] == "emu":
             min_abundance = config["min_abundance"]
         conda:
             "ezpore_conda.yaml"
-        log: "logs/emu.log"
+        log:
+            "logs/emu_{barcode}.log"
         shell:
             """
             emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
