@@ -88,10 +88,10 @@ if config["classifier"] == "emu":
 
 rule all:
     input:
-        "{}".format(config["group"]),
-        expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
-        expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
-        expand("classifier_input/{barcode}.fasta",barcode=barcodes),
+        #"{}".format(config["group"]),
+        #expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
+        #expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
+        #expand("classifier_input/{barcode}.fasta",barcode=barcodes),
         rule_all_classifier
 
 #select correct database url
@@ -101,8 +101,8 @@ if config["group"] == "18S_nem":
     url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
     =ujkcvtae&dl=1"
 elif config["group"] == "16S_bac":
-    url = "https://www.dropbox.com/scl/fi/1fwfdt3exuibv3y1z40h5/16S_bac.zip?rlkey=o3tquqpttgjyzhjpsizusa0mq&st\
-    =gzxlq7w3&dl=1"
+    url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
+    =focsovmh&dl=1"
 elif config["group"] == "ITS_fungi":
     url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
     =tehvlq24&dl=1"
@@ -117,6 +117,7 @@ rule download_database:
     params:
         url = f"{url}",
         group = config["group"]
+    log: "logs/download_database.log"
     shell:
         """
         wget -O {params.group}.zip "{params.url}"
@@ -134,6 +135,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
         params:
             demux_dir = "demux"
         threads: config["threads"]
+        log: "logs/demultiplex.log"
         shell:
             """
             wget https://cdn.oxfordnanoportal.com/software/analysis/dorado-0.8.3-linux-x64.tar.gz
@@ -155,6 +157,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
             src = input[0]
             dst = output[0]
             shutil.copy(src, dst)  # Copy file to destination
+
 else:
     rule select_files_nodemux: #copies only the selected files based on barcode_file.txt
         input:
@@ -176,6 +179,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         "filtered/filtered_{barcode}.fastq"
     conda:
         "ezpore_conda.yaml"
+    log: "logs/nanofilt.log"
     params:
         min_length = config["min"],
         max_length = config["max"],
@@ -185,87 +189,90 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output}
         """
 
-if config.get("trim_primers", None) is False and config.get("clustering", None) is False:
-    rule move_emu_filter:  #temporarily moves files as input for vsearch
-        input:
-            "filtered/filtered_{barcode}.fastq"
-        output:
-            "classifier_input/filtered_{barcode}.fasta"
-        conda:
-            "ezpore_conda.yaml"
-        shell:
-            """
-            cp {input} {output}
-            """
-#Set primer pairs based on group in settingsfile
 
-
-if config.get("trim_primers", None) is True:
-    rule primer_trimming: #trimps primers with cutadapt
-        input:
-            fastq="filtered/filtered_{barcode}.fastq"
-        output:
-            "trimmed/trimmed_{barcode}.fastq"
-        conda:
-            "ezpore_conda.yaml"
-        params:
-            primer_error_rate = config["primer_error_rate"],
-            threads = config["threads"],
-            fw_primer = config["forward_primer"],
-            rv_primer = config["reverse_primer"]
-        shell:
-            """
-            cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {params.threads} \
-            -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output}
-            """
-
-    if config.get("clustering", None) is True:
-        rule move_vsearch: #temporarily moves files as input for vsearch
+if config["group"] == "16S_bac" or config["group"] == "18S_nem":
+    if config.get("trim_primers", None) is False and config.get("clustering", None) is False:
+        rule move_emu_filter:  #temporarily moves files as input for vsearch
             input:
-                "trimmed/trimmed_{barcode}.fastq"
+                "filtered/filtered_{barcode}.fastq"
             output:
-                temp("vsearch_input/{barcode}.fastq")
+                "classifier_input/filtered_{barcode}.fasta"
             conda:
                 "ezpore_conda.yaml"
+            shell:
+                """
+                cp {input} {output}
+                """
+
+    if config.get("trim_primers", None) is True:
+        rule primer_trimming: #trimps primers with cutadapt
+            input:
+                fastq="filtered/filtered_{barcode}.fastq"
+            output:
+                "trimmed/trimmed_{barcode}.fastq"
+            conda:
+                "ezpore_conda.yaml"
+            log: "logs/cutadapt.log"
+            params:
+                primer_error_rate = config["primer_error_rate"],
+                threads = config["threads"],
+                fw_primer = config["forward_primer"],
+                rv_primer = config["reverse_primer"]
+            shell:
+                """
+                cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {params.threads} \
+                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output}
+                """
+
+        if config.get("clustering", None) is True:
+            rule move_vsearch: #temporarily moves files as input for vsearch
+                input:
+                    "trimmed/trimmed_{barcode}.fastq"
+                output:
+                    temp("vsearch_input/{barcode}.fastq")
+                conda:
+                    "ezpore_conda.yaml"
+                shell:
+                    """
+                    cp {input} {output}
+                    """
+        else:
+            rule move_emu_trim:  #temporarily moves files as input for vsearch
+                input:
+                    "trimmed/trimmed_{barcode}.fastq"
+                output:
+                    "classifier_input/{barcode}.fasta"
+                conda:
+                    "ezpore_conda.yaml"
+                shell:
+                    """
+                    cp {input} {output}
+                    """
+
+
+if config["group"] == "ITS_fungi": #extracts ITS for fungi
+    rule ITSexpress:
+        input:
+            fastq = "filtered/filtered_{barcode}.fastq"
+        output:
+            "ITS_extract/ITS_{barcode}.fastq"
+        params:
+            threads = config["threads"]
+        log: "logs/itsexpress.log"
+        shell:
+            "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
+
+    if config.get("clustering",None) is True:
+        rule move_vsearch: #temporarily moves files as input for vsearch
+            input:
+                "ITS_extract/ITS_{barcode}.fastq"
+            output:
+                temp("vsearch_input/{barcode}.fastq")
             shell:
                 """
                 cp {input} {output}
                 """
     else:
-        rule move_emu_trim:  #temporarily moves files as input for vsearch
-            input:
-                "trimmed/trimmed_{barcode}.fastq"
-            output:
-                "classifier_input/{barcode}.fasta"
-            conda:
-                "ezpore_conda.yaml"
-            shell:
-                """
-                cp {input} {output}
-                """
-
-
-# if config["group"] == "ITS_fungi": #extracts ITS for fungi
-#     rule ITSexpress:
-#         input:
-#             fastq = "filtered/{barcode}.fastq"
-#         output:
-#             "ITS_extract/ITS_{barcode}.fastq"
-#         params:
-#             threads = config["threads"]
-#         shell:
-#             "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
-#
-    # rule move_vsearch: #temporarily moves files as input for vsearch
-    #     input:
-    #         "ITS_extract/ITS_{barcode}.fastq"
-    #     output:
-    #         temp("vsearch_input/{barcode}.fastq")
-    #     shell:
-    #         """
-    #         cp {input} {output}
-    #         """
-    if config.get("clustering", None) is False:
         rule move_emu_ITS:  #temporarily moves files as input for vsearch
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
@@ -290,6 +297,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             threads = config["threads"]
         conda:
             "ezpore_conda.yaml"
+        log: "logs/vsearch_cluster.log"
         shell:
             """
             vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
@@ -303,6 +311,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             "clustered_rerep/rerep_clustered_{barcode}.fasta"
         conda:
             "ezpore_conda.yaml"
+        log: "logs/vsearch_rereplicate.log"
         shell:
             """
             vsearch --rereplicate {input} --relabel sequence --output {output}
@@ -327,7 +336,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
 if config["classifier"] == "emu":
     rule emu: #runs emu
         input:
-            fasta = "clasifier_input/{barcode}.fasta",
+            fasta = "classifier_input/{barcode}.fasta",
             db_path = config["group"]
         output:
             "results/{barcode}_rel-abundance.tsv",
@@ -336,6 +345,7 @@ if config["classifier"] == "emu":
             min_abundance = config["min_abundance"]
         conda:
             "ezpore_conda.yaml"
+        log: "logs/emu.log"
         shell:
             """
             emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
