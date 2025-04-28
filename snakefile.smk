@@ -104,7 +104,7 @@ if config["classifier"] == "emu":
     elif config["group"] == "16S_bac":
         url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac_emu.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
         =i1csixgm&dl=1"
-    elif config["group"] == "ITS_fungi":
+    elif config["group"] == "ITS_fun":
         url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun_emu.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
         =as5e3x7x&dl=1"
 
