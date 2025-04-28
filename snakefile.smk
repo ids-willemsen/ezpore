@@ -112,6 +112,10 @@ elif config["classifier"] == "vsearch":
     if config["group"] == "16S_bac":
         url = "https://www.dropbox.com/scl/fi/m7iiynw3fs165r4lkb6f1/16S_bac_vsearch.zip?rlkey=\
         oju8peae1orktttq1dp2nqgoi&st=pe8h03o8&dl=1"
+    if config["group"] == "ITS_fun":
+        url = "https://www.dropbox.com/scl/fi/5u3bnq73kvswvaplb83qy/ITS_fun_vsearch.zip?rlkey=\
+        k6jqcbs03il3yhuiyj8l15va0&st=d6gm5dnd&dl=1"
+
 
 rule download_database:
     output:
@@ -317,37 +321,47 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 --consout {output}
             """
 
-    rule vsearch_rereplicate: #rereplicates with vsearch
-        input:
-            "clustered/clustered_{barcode}.fasta"
-        output:
-            "clustered_rerep/rerep_clustered_{barcode}.fasta"
-        conda:
-            "ezpore_conda.yaml"
-        log:
-            "logs/vsearch_rereplicate_{barcode}.log"
-        shell:
-            """
-            vsearch --rereplicate {input} --relabel sequence --output {output}
-            """
+    if config["classifier"] == "emu":
+        rule vsearch_rereplicate: #rereplicates with vsearch
+            input:
+                "clustered/clustered_{barcode}.fasta"
+            output:
+                "clustered_rerep/rerep_clustered_{barcode}.fasta"
+            conda:
+                "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_rereplicate_{barcode}.log"
+            shell:
+                """
+                vsearch --rereplicate {input} --relabel sequence --output {output}
+                """
 
-    rule move_emu_cluster:  #temporarily moves files as input for vsearch
-        input:
-            "clustered_rerep/rerep_clustered_{barcode}.fasta"
-        output:
-            "classifier_input/{barcode}.fasta"
-        conda:
-            "ezpore_conda.yaml"
-        shell:
-            """
-            cp {input} {output}
-            """
+        rule move_emu_cluster:  #temporarily moves files as input for vsearch
+            input:
+                "clustered_rerep/rerep_clustered_{barcode}.fasta"
+            output:
+                "classifier_input/{barcode}.fasta"
+            conda:
+                "ezpore_conda.yaml"
+            shell:
+                """
+                cp {input} {output}
+                """
 
+    if config["classifier"] == "vsearch":
+        rule move_vsearch_cluster:  #temporarily moves files as input for vsearch
+            input:
+                "clustered/clustered_{barcode}.fasta"
+            output:
+                "classifier_input/{barcode}.fasta"
+            conda:
+                "ezpore_conda.yaml"
+            shell:
+                """
+                cp {input} {output}
+                """
 
-#options: 1. vsearch - ezpz; 2. no vsearch, ITS extract; 3. no vsearch, trim primers; 4. no vsearch, no primer trimming
-
-
-if config["classifier"] == "emu":
+#classification
     rule emu: #runs emu
         input:
             fasta = "classifier_input/{barcode}.fasta",
@@ -388,3 +402,15 @@ if config["classifier"] == "vsearch":
         input:
             fasta="classifier_input/{barcode}.fasta",
             db_path="{}_vsearch/{}_vsearch.fasta".format(config["group"],config["group"])
+        output:
+            "results/vsearch_result_{barcode}.tsv",
+        params:
+            id = config["vsearch_id"]
+        conda:
+            "ezpore_conda.yaml"
+        shell:
+            """
+            vsearch --usearch_global clustered_barcode58.fasta --db 16S_bac_vsearch.fasta --id {params.id} \
+             --blast6out {output} --top_hits_only
+            """
+

@@ -1,20 +1,21 @@
 demultiplex: False
-min: 100
-max: 10000
-quality: 15
-trim_primers: True
-primer_error_rate: 0.2
-min_abundance: 0.0001
-clustering: False
-cluster_perc: 0.97
-rank: species
-threads: 2
+min: 100 #Minimum read length for filtering with nanofilt
+max: 10000 #Maximum read length for filtering with nanofilt
+quality: 15 #Minimum quality of a read for filtering with nanofilt
+trim_primers: True 
+primer_error_rate: 0.2 #maximum ratio of error used when trimming primers with cutadapt
+clustering: False 
+cluster_perc: 0.97 #percent identity used for clustering with vsearch
+rank: species 
+threads: 24
 group: ITS_fun #18_nem, 16S_bac or ITS_fun
-barcode_file: barcode_files.txt
-input_file: test_dataset_16S.fastq
-forward_primer: AGAGTTTGATCMTGGCTCAG
+barcode_file: barcode_files.txt #path to the file including your barcodes
+input_file: test_dataset_16S.fastq #path to query file (in case of no demultiplexing)
+forward_primer: AGAGTTTGATCMTGGCTCAG 
 reverse_primer: AAGTCGTAACAAGGTAACCG
 classifier: emu #emu or vsearch
+min_abundance: 0.0001 #minimum abundance in the resulting OTU table by emu
+vsearch_id: 0.97 #minimum percent identity used by vsearch
 
 
 ####metabarcoding primers#####
