@@ -97,17 +97,21 @@ rule all:
 #select correct database url
 url = ""
 
-if config["group"] == "18S_nem":
-    url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
-    =ujkcvtae&dl=1"
-elif config["group"] == "16S_bac":
-    url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
-    =focsovmh&dl=1"
-elif config["group"] == "ITS_fungi":
-    url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
-    =tehvlq24&dl=1"
+if config["classifier"] == "emu":
+    if config["group"] == "18S_nem":
+        url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem_emu.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
+        =dghk0otk&dl=1"
+    elif config["group"] == "16S_bac":
+        url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac_emu.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
+        =i1csixgm&dl=1"
+    elif config["group"] == "ITS_fungi":
+        url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun_emu.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
+        =as5e3x7x&dl=1"
 
-
+elif config["classifier"] == "vsearch":
+    if config["group"] == "16S_bac":
+        url = "https://www.dropbox.com/scl/fi/m7iiynw3fs165r4lkb6f1/16S_bac_vsearch.zip?rlkey=\
+        oju8peae1orktttq1dp2nqgoi&st=pe8h03o8&dl=1"
 
 rule download_database:
     output:
@@ -116,13 +120,14 @@ rule download_database:
         "ezpore_conda.yaml"
     params:
         url = f"{url}",
-        group = config["group"]
+        group = config["group"],
+        classifier = config["classifier"]
     log:
         "logs/download_database.log"
     shell:
         """
-        wget -O {params.group}.zip "{params.url}"
-        unzip {params.group}.zip
+        wget -O {params.group}_{params.classifier}.zip "{params.url}"
+        unzip {params.group}_{params.classifier}.zip
         """
 
 if config.get("demultiplex", None) is True:  # Only run if demultiplexing is enabled
@@ -378,5 +383,8 @@ if config["classifier"] == "emu":
             emu combine-outputs results {params.rank}
             """
 
-
-
+if config["classifier"] == "vsearch":
+    rule vsearch:
+        input:
+            fasta="classifier_input/{barcode}.fasta",
+            db_path="{}_vsearch/{}_vsearch.fasta".format(config["group"],config["group"])
