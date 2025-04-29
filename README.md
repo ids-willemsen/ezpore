@@ -88,22 +88,25 @@ The `settingsfile.txt` takes following arguments:
 
 | argument | description | input type | default value |
 | -------- | ----------- | ------------  | ------------- |
-|-demultiplex | demultiplexes the data using dorado | TRUE/FALSE | TRUE |
-|-min | the minimum read length (in bp). Shorter reads are removed | integer | 100 | 
-|-max |the maximum read length (in bp). Larger reads are removed | INTEGER | 10000 |
-|-quality | the minimum average read quality to be retained. Reads with lower Q score are removed | INTEGER | 15 |
-|-trim_primers | removes primers using cutadapt | TRUE/FALSE | TRUE |
-|-primer_error_rate | the maximum allowed error rate for primer trimming. | UNIT INTERVAL[0-1} | 0.2 |  
-|-min_abundance | the minimum relative abundance of an organism to be retained by emu | UNIT INTERVAL[0-1] | 0.0001 |
-|-cluster_perc | the percentage identity to cluster on using vsearch. After clustering, consensus sequences are rereplicated for emu classification. If FALSE, no clustering is performed | UNIT INTERVAL[0-1} | FALSE |
-|-rank | the taxonomic rank which emu uses to combine output of all files | not functional ATM | species | 
-|-threads | the number of threads that emu uses for classification | INTEGER | 2 |
-|-group | the group of organisms: bacteria (16S_bac), nematodes (18S_nem) or fungi (ITS_fun) | STRING | none |
-|-barcode_file | .txt file containing the barcodes you used | .txt file | none |
-|-input_file | the input file (.fastq) of the analysis, in case demultiplexing is fale you can leave this empty | .fastq file | none | 
+|demultiplex | demultiplexes the data using dorado | TRUE/FALSE | TRUE |
+|min | the minimum read length (in bp). Shorter reads are removed | integer | 100 | 
+|max |the maximum read length (in bp). Larger reads are removed | INTEGER | 10000 |
+|quality | the minimum average read quality to be retained. Reads with lower Q score are removed | INTEGER | 15 |
+|trim_primers | removes primers using cutadapt | TRUE/FALSE | TRUE |
+|primer_error_rate | the maximum allowed error rate for primer trimming. | UNIT INTERVAL[0-1} | 0.2 |  
+|min_abundance | the minimum relative abundance of an organism to be retained by emu | UNIT INTERVAL[0-1] | 0.0001 |
+|cluster_perc | the percentage identity to cluster on using vsearch. After clustering, consensus sequences are rereplicated for emu classification. If FALSE, no clustering is performed | UNIT INTERVAL[0-1} | FALSE |
+|rank | the taxonomic rank which emu uses to combine output of all files | not functional ATM | species | 
+|threads | the number of threads that emu uses for classification | INTEGER | 2 |
+|group | the group of organisms: bacteria (16S_bac), nematodes (18S_nem) or fungi (ITS_fun) | STRING | none |
+|barcode_file | .txt file containing the barcodes you used | .txt file | none |
+|input_file | the input file (.fastq) of the analysis, in case demultiplexing is not performed you can leave this empty | .fastq file | none | 
 
 ### Using a custom database
 `ezpore` is equipped to automatically download the 16S SILVA database for bacteria, the UNITE ITS database for fungi, and our in-house 18S Nematode database for both 'emu' and 'vsearch' classification. If you prefer to use your own database, this is possible by changing the custom_database argument to 'True'. In this case, the database files should be present in a folder called 'custom_database' in the correct format as used by vsearch/emu, please check their documentation for more information. 
 
 ### Bugs and requests
 If you encounter any bugs or you wish to request additional features, please open an issue on this GitHub page.
+
+### Acknowledgements
+We want to thank the creators of Decona (https://github.com/Saskia-Oosterbroek/decona) for their advice in the early stages of creating the `ezpore` pipeline.
