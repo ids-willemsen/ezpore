@@ -16,7 +16,8 @@ reverse_primer: AAGTCGTAACAAGGTAACCG
 classifier: emu #emu or vsearch
 min_abundance: 0.0001 #minimum abundance in the resulting OTU table by emu
 vsearch_id: 0.97 #minimum percent identity used by vsearch
-
+custom_database: False
+custom_database_path: ./path_to_your_database #The path to your database - directory in case of emu, .fasta in case of vsearch
 
 ####metabarcoding primers#####
 #18S nematodes (van himbeeck et al.) - forward primer: ctcaaagattaagccatgc; reverse primer: gctaccttgttacgactttt

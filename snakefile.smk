@@ -29,6 +29,8 @@ def validate_config(config):
         raise TypeError("Parameter 'quality' should be an integer.")
     if not isinstance(config["trim_primers"], bool):
         raise TypeError("Parameter 'trim_primers' should be a boolean.")
+    if not isinstance(config["custom_database"], bool):
+        raise TypeError("Parameter 'custom_database' should be a boolean.")
     if not isinstance(config["primer_error_rate"], float):
         raise TypeError("Parameter 'primer_error_rate' should be a float.")
     if not isinstance(config["min_abundance"], float):
@@ -362,10 +364,18 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 """
 
 #classification
+if config["classifier"] == "emu":
+
+    #generate database path
+    if config.get("custom_database",None) is False:
+        database = config["group"]
+    elif config.get("custom_database",None) is True:
+        database = config["custom_database_path"]
+
     rule emu: #runs emu
         input:
             fasta = "classifier_input/{barcode}.fasta",
-            db_path = config["group"]
+            db_path = database
         output:
             "results/{barcode}_rel-abundance.tsv",
         params:
@@ -398,10 +408,16 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             """
 
 if config["classifier"] == "vsearch":
+
+    if config.get("custom_database", None) is False:
+        database = "{}_vsearch/{}_vsearch.fasta".format(config["group"],config["group"])
+    elif config.get("custom_database",None) is True:
+        database = config["custom_database_path"]
+
     rule vsearch:
         input:
             fasta="classifier_input/{barcode}.fasta",
-            db_path="{}_vsearch/{}_vsearch.fasta".format(config["group"],config["group"])
+            db_path= database
         output:
             "results/vsearch_result_{barcode}.tsv",
         params:
