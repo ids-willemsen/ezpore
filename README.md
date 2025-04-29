@@ -77,33 +77,35 @@ snakemake --snakefile snakefile.smk --use-conda --cores all
 
 # The settingsfile
 
-The settingsfile.txt contains all possible arguments that can be used by ezpore. Examples of how to use the settingsfile.txt for both demultiplexed and non-demultiplexed data, different organisms and other settings are given in each testrun folder. 
+The settingsfile.yaml contains all possible arguments that can be used by ezpore. 
 
-If demultiplexing is required (`-demultiplex TRUE`), the input file of `ezpore` should be a single .fastq file containing all data.
-
-If your data is already demultiplexed (`-demultiplex FALSE`), this data should be present in the directory in a folder named "demultiplexed". 
-The demultiplexed files within this folder, should be named as "barcodeXX.fastq", where XX has to be substituted by the correct barcode number. For example: barcode01.fastq or barcode21.fastq. (This feature is not tested yet). 
-
-The `settingsfile.txt` takes following arguments:
+The `settingsfile.yaml` includes following arguments:
 
 | argument | description | input type | default value |
 | -------- | ----------- | ------------  | ------------- |
-|demultiplex | demultiplexes the data using dorado | TRUE/FALSE | TRUE |
+|demultiplex | demultiplexes the data using dorado | True/False | True |
 |min | the minimum read length (in bp). Shorter reads are removed | integer | 100 | 
 |max |the maximum read length (in bp). Larger reads are removed | INTEGER | 10000 |
 |quality | the minimum average read quality to be retained. Reads with lower Q score are removed | INTEGER | 15 |
-|trim_primers | removes primers using cutadapt | TRUE/FALSE | TRUE |
-|primer_error_rate | the maximum allowed error rate for primer trimming. | UNIT INTERVAL[0-1} | 0.2 |  
-|min_abundance | the minimum relative abundance of an organism to be retained by emu | UNIT INTERVAL[0-1] | 0.0001 |
-|cluster_perc | the percentage identity to cluster on using vsearch. After clustering, consensus sequences are rereplicated for emu classification. If FALSE, no clustering is performed | UNIT INTERVAL[0-1} | FALSE |
-|rank | the taxonomic rank which emu uses to combine output of all files | not functional ATM | species | 
-|threads | the number of threads that emu uses for classification | INTEGER | 2 |
+|trim_primers | removes primers using cutadapt | True/False | True |
+|primer_error_rate | the maximum allowed error rate for primer trimming. | UNIT INTERVAL[0-1} | 0.2 |
+|clustering | clusters sequences using vsearch | True/False | True |
+|cluster_perc | the percentage identity to cluster on using vsearch. | UNIT INTERVAL[0-1} | 0.97 |
+|threads | the number of threads are used throughout the pipeline | INTEGER | 24 |
 |group | the group of organisms: bacteria (16S_bac), nematodes (18S_nem) or fungi (ITS_fun) | STRING | none |
-|barcode_file | .txt file containing the barcodes you used | .txt file | none |
+|barcode_file | the path to your barcode_files.txt| STRING| none |
 |input_file | the input file (.fastq) of the analysis, in case demultiplexing is not performed you can leave this empty | .fastq file | none | 
+|forward_primer | the primer sequence of your forward primer | STRING| none|
+|forward_primer | the primer sequence of your reverse primer | STRING| none|
+|classifier | the classifier you would like to use for taxonomic identification| emu/vsearch| none |
+|min_abundance | the minimum relative abundance of an organism to be retained by emu | UNIT INTERVAL[0-1] | 0.0001 |
+|rank | the taxonomic rank which emu uses to combine output of all files | species,genus, etc. | species | 
+|vsearch_id | the minimum percent identity that vsearch will include in your output| 0.97|
+|custom_database | use a custom database| True/False| False|
+|custom_database_path | The path to your custom database| none|
 
 ### Using a custom database
-`ezpore` is equipped to automatically download the 16S SILVA database for bacteria, the UNITE ITS database for fungi, and our in-house 18S Nematode database for both 'emu' and 'vsearch' classification. If you prefer to use your own database, this is possible by changing the custom_database argument to 'True'. In this case, the database files should be present in a folder called 'custom_database' in the correct format as used by vsearch/emu, please check their documentation for more information. 
+`ezpore` is equipped to automatically download the 16S SILVA database for bacteria, the UNITE ITS database for fungi, and our in-house 18S Nematode database for both 'emu' and 'vsearch' classification. If you prefer to use your own database, this is possible by changing the custom_database argument to 'True' and adding the database path to custom_database_path. In this case, the database files should be present should be in the correct format as used by vsearch/emu. If you choose to use emu, the custom_database_path should lead to a directory containing the taxonomy.tsv and species_taxid.fasta. If you choose to use vsearch, the custom_database_path should lead to a .fasta file vsearch database format. Mind that the `group` should still be set in the settingsfile (e.g. in the case you want to use ITS extraction set it to ITS_fun or if you would like to trim primers use 16S_bac/18S_nem).
 
 ### Bugs and requests
 If you encounter any bugs or you wish to request additional features, please open an issue on this GitHub page.
