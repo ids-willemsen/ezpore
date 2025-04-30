@@ -80,13 +80,25 @@ barcode_file = config["barcode_file"]
 barcodes = read_barcodes(barcode_file)
 
 #only add rules when emu/vsearch is selected
-rule_all_classifier = list()
+def get_classifier_inputs():
+    if config["classifier"] == "emu":
+        return ["results/emu-combined-{}-counts.tsv".format(config["rank"])]
+    elif config["classifier"] == "vsearch":
+        return [expand("results/vsearch_result_{barcode}.tsv", barcode=barcodes)]
+    else:
+        return []
 
-if config["classifier"] == "emu":
-    rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
-    #rule_all_classifier.append(expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes))
-#if config["classifier"] == vsearch:
-#   etc
+
+
+
+
+# rule_all_classifier = list()
+#
+# if config["classifier"] == "emu":
+#     rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
+#     #rule_all_classifier.append(expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes))
+# if config["classifier"] == "vsearch":
+#     rule_all_classifier.append('directory("results")')
 
 rule all:
     input:
@@ -94,8 +106,10 @@ rule all:
         #expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
         #expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
         #expand("classifier_input/{barcode}.fasta",barcode=barcodes),
-        rule_all_classifier
-
+        #rule_all_classifier
+        get_classifier_inputs()
+        #directory("{}".format(config["group"]))
+        #"{}_{}.zip".format(config["group"],config["classifier"])
 #select correct database url
 url = ""
 
@@ -112,16 +126,22 @@ if config["classifier"] == "emu":
 
 elif config["classifier"] == "vsearch":
     if config["group"] == "16S_bac":
-        url = "https://www.dropbox.com/scl/fi/m7iiynw3fs165r4lkb6f1/16S_bac_vsearch.zip?rlkey=\
-        oju8peae1orktttq1dp2nqgoi&st=pe8h03o8&dl=1"
+        url = "https://www.dropbox.com/scl/fi/p4elp4c6thvt7ivwtsr47/16S_bac_vsearch.zip?rlkey=4t02n123wxwsa4n4ap8mnu7m2&st=wn5r9awc&dl=0"
     if config["group"] == "ITS_fun":
-        url = "https://www.dropbox.com/scl/fi/5u3bnq73kvswvaplb83qy/ITS_fun_vsearch.zip?rlkey=\
-        k6jqcbs03il3yhuiyj8l15va0&st=d6gm5dnd&dl=1"
+        url = "https://www.dropbox.com/scl/fi/dx55tw2t7hionzkauildo/ITS_fun_vsearch.zip?rlkey=guuisio9ct1j1oh7z17aq92ae&st=0zlgji0h&dl=0"
+
+def get_database_output():
+    if config["classifier"] == "emu":
+        return [directory("{}".format(config["group"]))]
+    elif config["classifier"] == "vsearch":
+        return ["{}/{}_vsearch.fasta".format(config["group"],config["group"])]
+    else:
+        return []
 
 
 rule download_database:
     output:
-        directory("{}".format(config["group"]))
+        get_database_output()
     conda:
         "ezpore_conda.yaml"
     params:
@@ -132,7 +152,7 @@ rule download_database:
         "logs/download_database.log"
     shell:
         """
-        wget -O {params.group}_{params.classifier}.zip "{params.url}"
+        wget -O {params.group}_{params.classifier}.zip "{params.url}"        
         unzip {params.group}_{params.classifier}.zip
         """
 
@@ -252,7 +272,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                     cp {input} {output}
                     """
         else:
-            rule move_emu_trim:  #temporarily moves files as input for vsearch
+            rule move_class_trim:  #temporarily moves files as input for vsearch
                 input:
                     "trimmed/trimmed_{barcode}.fastq"
                 output:
@@ -261,7 +281,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                     "ezpore_conda.yaml"
                 shell:
                     """
-                    cp {input} {output}
+                    seqtk seq -A {input} > {output}
                     """
 
 
@@ -291,7 +311,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
                 cp {input} {output}
                 """
     else:
-        rule move_emu_ITS:  #temporarily moves files as input for vsearch
+        rule move_class_ITS:  #temporarily moves files as input for vsearch
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
             output:
@@ -300,7 +320,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
                 "ezpore_conda.yaml"
             shell:
                 """
-                cp {input} {output}
+                seqtk seq -A {input} > {output}
                 """
 
 
@@ -410,7 +430,7 @@ if config["classifier"] == "emu":
 if config["classifier"] == "vsearch":
 
     if config.get("custom_database", None) is False:
-        database = "{}_vsearch/{}_vsearch.fasta".format(config["group"],config["group"])
+        database = "{}/{}_vsearch.fasta".format(config["group"],config["group"])
     elif config.get("custom_database",None) is True:
         database = config["custom_database_path"]
 
@@ -426,7 +446,7 @@ if config["classifier"] == "vsearch":
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global clustered_barcode58.fasta --db 16S_bac_vsearch.fasta --id {params.id} \
+            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} \
              --blast6out {output} --top_hits_only
             """
 
