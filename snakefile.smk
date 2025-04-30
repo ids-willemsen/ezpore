@@ -223,20 +223,33 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output}
         """
 
-
 if config["group"] == "16S_bac" or config["group"] == "18S_nem":
-    if config.get("trim_primers", None) is False and config.get("clustering", None) is False:
-        rule move_emu_filter:  #temporarily moves files as input for vsearch
-            input:
-                "filtered/filtered_{barcode}.fastq"
-            output:
-                "classifier_input/filtered_{barcode}.fasta"
-            conda:
-                "ezpore_conda.yaml"
-            shell:
-                """
-                cp {input} {output}
-                """
+    if config.get("trim_primers", None) is False:
+        if config.get("clustering", None) is False:
+            rule move_class_filter:  #temporarily moves files as input for vsearch
+                input:
+                    "filtered/filtered_{barcode}.fastq"
+                output:
+                    "classifier_input/{barcode}.fasta"
+                conda:
+                    "ezpore_conda.yaml"
+                shell:
+                    """
+                    seqtk seq -A {input} > {output}
+                    """
+
+        elif config.get("clustering", None) is True:
+            rule move_vsearch_filter:  #temporarily moves files as input for vsearch
+                input:
+                    "filtered/filtered_{barcode}.fastq"
+                output:
+                    temp("vsearch_input/{barcode}.fastq")
+                conda:
+                    "ezpore_conda.yaml"
+                shell:
+                    """
+                    cp {input} {output}
+                    """
 
     if config.get("trim_primers", None) is True:
         rule primer_trimming: #trimps primers with cutadapt
