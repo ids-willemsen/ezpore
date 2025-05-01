@@ -107,7 +107,8 @@ rule all:
         #expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
         #expand("classifier_input/{barcode}.fasta",barcode=barcodes),
         #rule_all_classifier
-        get_classifier_inputs()
+        #get_classifier_inputs()
+        "vsearch_input/merged_barcodes.fasta"
         #directory("{}".format(config["group"]))
         #"{}_{}.zip".format(config["group"],config["classifier"])
 #select correct database url
@@ -316,15 +317,19 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
             "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
 
     if config.get("clustering",None) is True:
-        rule move_vsearch: #temporarily moves files as input for vsearch
-            input:
-                "ITS_extract/ITS_{barcode}.fastq"
-            output:
-                temp("vsearch_input/{barcode}.fastq")
-            shell:
-                """
-                cp {input} {output}
-                """
+        if config["classifier"] == "emu":
+            rule move_vsearch: #temporarily moves files as input for vsearch
+                input:
+                    "ITS_extract/ITS_{barcode}.fastq"
+                output:
+                    temp("vsearch_input/{barcode}.fastq")
+                shell:
+                    """
+                    cp {input} {output}
+                    """
+
+
+
     else:
         rule move_class_ITS:  #temporarily moves files as input for vsearch
             input:
@@ -340,25 +345,25 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
 
 
 if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range between 0-1,
-    rule vsearch_clustering: #clustering with vsearch
-        input:
-            "vsearch_input/{barcode}.fastq"
-        output:
-            "clustered/clustered_{barcode}.fasta"
-        params:
-            cluster_perc = config["cluster_perc"],
-            threads = config["threads"]
-        conda:
-            "ezpore_conda.yaml"
-        log:
-            "logs/vsearch_cluster_{barcode}.log"
-        shell:
-            """
-            vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
-                --consout {output}
-            """
-
     if config["classifier"] == "emu":
+        rule vsearch_clustering: #clustering with vsearch
+            input:
+                "vsearch_input/{barcode}.fastq"
+            output:
+                "clustered/clustered_{barcode}.fasta"
+            params:
+                cluster_perc = config["cluster_perc"],
+                threads = config["threads"]
+            conda:
+                "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_cluster_{barcode}.log"
+            shell:
+                """
+                vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
+                    --consout {output}
+                """
+
         rule vsearch_rereplicate: #rereplicates with vsearch
             input:
                 "clustered/clustered_{barcode}.fasta"
@@ -385,18 +390,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 cp {input} {output}
                 """
 
-    if config["classifier"] == "vsearch":
-        rule move_vsearch_cluster:  #temporarily moves files as input for vsearch
-            input:
-                "clustered/clustered_{barcode}.fasta"
-            output:
-                "classifier_input/{barcode}.fasta"
-            conda:
-                "ezpore_conda.yaml"
-            shell:
-                """
-                cp {input} {output}
-                """
+
 
 #classification
 if config["classifier"] == "emu":
@@ -442,26 +436,110 @@ if config["classifier"] == "emu":
             emu combine-outputs results {params.rank}
             """
 
+
 if config["classifier"] == "vsearch":
+    rule fastq_to_fasta:
+        input:
+            "vsearch_input/{barcode}.fastq"
+        output:
+            "vsearch_input/{barcode}.fasta"
+        conda:
+            "ezpore_conda.yaml"
+        shell:
+            # Convert FASTQ to FASTA
+            """
+            seqtk seq -A {input} > {output}
+            """
+
+    rule add_sample_name:
+        input:
+            "vsearch_input/{barcode}.fasta"
+        output:
+            "vsearch_input/{barcode}_renamed.fasta"
+        params:
+            sample="{barcode}"
+        shell:
+            """
+            sed 's/^>/>{wildcards.barcode}_/' {input} > {output}
+            """
+
+    rule merge_fastas:
+        input:
+            expand("vsearch_input/{barcode}_renamed.fasta",barcode=barcodes)
+        output:
+            "vsearch_input/merged_barcodes.fasta"
+        shell:
+            """
+            cat {input} > {output}
+            """
+
+    cluster_perc = 100
+    if config.get("clustering", None) is True:
+        cluster_perc = config["cluster_perc"]
+
+
+    rule cluster_OTU:
+        input:
+            "vsearch_input/merged_barcodes.fasta"
+        output:
+            "vsearch_input/otus.fasta"
+        params:
+            cluster_perc=cluster_perc
+        conda:
+            "ezpore_conda.yaml"
+        shell:
+            """
+            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc clusters.uc
+            """
+
+    rule table_OTU:
+        input:
+            otus="vsearch_input/otus.fasta",
+            reads="vsearch_input/merged_barcodes.fasta"
+        output:
+            "otu_table.tsv"
+        params:
+            cluster_perc=cluster_perc
+        conda:
+            "ezpore_conda.yaml"
+        shell:
+            """
+            vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output}
+            """
 
     if config.get("custom_database", None) is False:
         database = "{}/{}_vsearch.fasta".format(config["group"],config["group"])
     elif config.get("custom_database",None) is True:
         database = config["custom_database_path"]
 
-    rule vsearch:
+
+    rule tax_id_otus_vsearch:
         input:
-            fasta="classifier_input/{barcode}.fasta",
-            db_path= database
+            fasta="vsearch_input/otus.fasta",
+            db_path=database
         output:
-            "results/vsearch_result_{barcode}.tsv",
+            "otu_taxonomy.tsv",
         params:
-            id = config["vsearch_id"]
+            id=config["vsearch_id"]
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} \
-             --blast6out {output} --top_hits_only
+            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only
             """
+
+    rule combine_otu_table_and_taxonomy:
+        input:
+            otu_table="otu_table.tsv",
+            taxonomy="otu_taxonomy.tsv"
+        output:
+            combined="results/otu_table_with_taxonomy.txt"
+        run:
+            import pandas as pd
+            otu_table = pd.read_csv(input.otu_table,sep='\t')
+            taxonomy = pd.read_csv(input.taxonomy,sep='\t',header=None,names=['OTU_ID', 'Taxonomy'])
+            merged = pd.merge(taxonomy,otu_table,on='OTU_ID')
+            merged.to_csv(output.combined,sep='\t',index=False)
+
+
 
