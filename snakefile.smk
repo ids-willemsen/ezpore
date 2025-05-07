@@ -84,7 +84,7 @@ def get_classifier_inputs():
     if config["classifier"] == "emu":
         return ["results/emu-combined-{}-counts.tsv".format(config["rank"])]
     elif config["classifier"] == "vsearch":
-        return [expand("results/vsearch_result_{barcode}.tsv", barcode=barcodes)]
+        return ["results/otu_table_with_taxonomy.txt"]
     else:
         return []
 
@@ -107,8 +107,8 @@ rule all:
         #expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
         #expand("classifier_input/{barcode}.fasta",barcode=barcodes),
         #rule_all_classifier
-        #get_classifier_inputs()
-        "vsearch_input/merged_barcodes.fasta"
+        get_classifier_inputs()
+        #"vsearch_input/merged_barcodes.fasta"
         #directory("{}".format(config["group"]))
         #"{}_{}.zip".format(config["group"],config["classifier"])
 #select correct database url
@@ -460,7 +460,7 @@ if config["classifier"] == "vsearch":
             sample="{barcode}"
         shell:
             """
-            sed 's/^>/>{wildcards.barcode}_/' {input} > {output}
+            sed 's/^>.*/>{params.sample}/' {input} > {output}
             """
 
     rule merge_fastas:
@@ -473,16 +473,16 @@ if config["classifier"] == "vsearch":
             cat {input} > {output}
             """
 
-    cluster_perc = 100
+    cluster_perc = 1.0
     if config.get("clustering", None) is True:
         cluster_perc = config["cluster_perc"]
 
 
-    rule cluster_OTU:
+    rule cluster_OTU: #problem might be here?
         input:
             "vsearch_input/merged_barcodes.fasta"
         output:
-            "vsearch_input/otus.fasta"
+            "vsearch_input/otus_renamed.fasta"
         params:
             cluster_perc=cluster_perc
         conda:
@@ -490,11 +490,12 @@ if config["classifier"] == "vsearch":
         shell:
             """
             vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc clusters.uc
+            awk '/^>/ {{print ">cluster" ++i}} !/^>/ {{print}}' {output} > vsearch_input/otus_renamed.fasta            
             """
 
-    rule table_OTU:
+    rule table_OTU: #PROBLEM IS HERE
         input:
-            otus="vsearch_input/otus.fasta",
+            otus="vsearch_input/otus_renamed.fasta",
             reads="vsearch_input/merged_barcodes.fasta"
         output:
             "otu_table.tsv"
@@ -515,7 +516,7 @@ if config["classifier"] == "vsearch":
 
     rule tax_id_otus_vsearch:
         input:
-            fasta="vsearch_input/otus.fasta",
+            fasta="vsearch_input/otus_renamed.fasta",
             db_path=database
         output:
             "otu_taxonomy.tsv",
@@ -528,18 +529,18 @@ if config["classifier"] == "vsearch":
             vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only
             """
 
-    rule combine_otu_table_and_taxonomy:
-        input:
-            otu_table="otu_table.tsv",
-            taxonomy="otu_taxonomy.tsv"
-        output:
-            combined="results/otu_table_with_taxonomy.txt"
-        run:
-            import pandas as pd
-            otu_table = pd.read_csv(input.otu_table,sep='\t')
-            taxonomy = pd.read_csv(input.taxonomy,sep='\t',header=None,names=['OTU_ID', 'Taxonomy'])
-            merged = pd.merge(taxonomy,otu_table,on='OTU_ID')
-            merged.to_csv(output.combined,sep='\t',index=False)
-
-
-
+    # rule combine_otu_table_and_taxonomy:
+    #     input:
+    #         otu_table="otu_table.tsv",
+    #         taxonomy="otu_taxonomy.tsv"
+    #     output:
+    #         combined="results/otu_table_with_taxonomy.txt"
+    #     run:
+    #         pip install pandas
+    #         import pandas as pd
+    #         otu_table = pd.read_csv(input.otu_table,sep='\t')
+    #         taxonomy = pd.read_csv(input.taxonomy,sep='\t',header=None,names=['OTU_ID', 'Taxonomy'])
+    #         merged = pd.merge(taxonomy,otu_table,on='OTU_ID')
+    #         merged.to_csv(output.combined,sep='\t',index=False)
+    #
+    #
