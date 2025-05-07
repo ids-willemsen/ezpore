@@ -84,7 +84,7 @@ def get_classifier_inputs():
     if config["classifier"] == "emu":
         return ["results/emu-combined-{}-counts.tsv".format(config["rank"])]
     elif config["classifier"] == "vsearch":
-        return ["results/otu_table_with_taxonomy.txt"]
+        return ["results/otu_table.tsv", "results/otu_taxonomy.tsv", "results/otu_table_with_taxonomy.tsv"]
     else:
         return []
 
@@ -489,23 +489,23 @@ if config["classifier"] == "vsearch":
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc clusters.uc
-            awk '/^>/ {{print ">cluster" ++i}} !/^>/ {{print}}' {output} > vsearch_input/otus_renamed.fasta            
-            """
+            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc clusters.uc --relabel otu
+            # """
+
 
     rule table_OTU: #PROBLEM IS HERE
         input:
             otus="vsearch_input/otus_renamed.fasta",
             reads="vsearch_input/merged_barcodes.fasta"
         output:
-            "otu_table.tsv"
+            "results/otu_table.tsv"
         params:
             cluster_perc=cluster_perc
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output}
+            vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only
             """
 
     if config.get("custom_database", None) is False:
@@ -519,7 +519,7 @@ if config["classifier"] == "vsearch":
             fasta="vsearch_input/otus_renamed.fasta",
             db_path=database
         output:
-            "otu_taxonomy.tsv",
+            "results/otu_taxonomy.tsv",
         params:
             id=config["vsearch_id"]
         conda:
@@ -529,18 +529,31 @@ if config["classifier"] == "vsearch":
             vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only
             """
 
-    # rule combine_otu_table_and_taxonomy:
-    #     input:
-    #         otu_table="otu_table.tsv",
-    #         taxonomy="otu_taxonomy.tsv"
-    #     output:
-    #         combined="results/otu_table_with_taxonomy.txt"
-    #     run:
-    #         pip install pandas
-    #         import pandas as pd
-    #         otu_table = pd.read_csv(input.otu_table,sep='\t')
-    #         taxonomy = pd.read_csv(input.taxonomy,sep='\t',header=None,names=['OTU_ID', 'Taxonomy'])
-    #         merged = pd.merge(taxonomy,otu_table,on='OTU_ID')
-    #         merged.to_csv(output.combined,sep='\t',index=False)
-    #
-    #
+    rule combine_otu_table_and_taxonomy:
+        input:
+            otu_table="results/otu_table.tsv",
+            taxonomy="results/otu_taxonomy.tsv"
+        output:
+            combined="results/otu_table_with_taxonomy.tsv"
+        run:
+            otu_tax_dic = {}
+            with open("results/otu_taxonomy.tsv","r") as f:
+                for line in f:
+                    split = line.strip().split("\t")
+                    otu_tax_dic[split[0]] = split[1]
+
+            with open("results/otu_table.tsv","r") as t:
+                with open("results/otu_table_with_taxonomy.tsv","w") as w:
+                    for line in t:
+                        split = line.strip().split("\t")
+                        if split[0] in otu_tax_dic:
+                            # Insert taxonomy after OTU ID (index 1)
+                            split.insert(1,otu_tax_dic[split[0]])
+                        elif split[0] == "#OTU ID":
+                            split.insert(1,"taxonomy")
+                        else:
+                            split.insert(1,"unknown")
+                        w.write("\t".join(split) + "\n")
+
+
+

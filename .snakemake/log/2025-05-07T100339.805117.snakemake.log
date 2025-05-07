@@ -1,0 +1,88 @@
+Building DAG of jobs...
+Full Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/snakemake/__init__.py", line 792, in snakemake
+    success = workflow.execute(
+              ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/snakemake/workflow.py", line 895, in execute
+    dag.init()
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 214, in init
+    job = self.update([job], progress=progress, create_inventory=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 927, in update
+    raise exceptions[0]
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 885, in update
+    self.update_(
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 1018, in update_
+    raise ex
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 1000, in update_
+    selected_job = self.update(
+                   ^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 927, in update
+    raise exceptions[0]
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 885, in update
+    self.update_(
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 1018, in update_
+    raise ex
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 1000, in update_
+    selected_job = self.update(
+                   ^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/snakemake/dag.py", line 925, in update
+    raise WorkflowError(*exceptions)
+snakemake.exceptions.WorkflowError: WorkflowError:
+    WorkflowError:
+        MissingInputException: Missing input files for rule fastq_to_fasta:
+            output: vsearch_input/barcode57_renamed.fasta
+            wildcards: barcode=barcode57_renamed
+            affected files:
+                vsearch_input/barcode57_renamed.fastq
+        MissingInputException: Missing input files for rule fastq_to_fasta:
+            output: vsearch_input/barcode57.fasta
+            wildcards: barcode=barcode57
+            affected files:
+                vsearch_input/barcode57.fastq
+    MissingInputException: Missing input files for rule fastq_to_fasta:
+        output: vsearch_input/merged_barcodes.fasta
+        wildcards: barcode=merged_barcodes
+        affected files:
+            vsearch_input/merged_barcodes.fastq
+MissingInputException: Missing input files for rule fastq_to_fasta:
+    output: vsearch_input/otus_renamed.fasta
+    wildcards: barcode=otus_renamed
+    affected files:
+        vsearch_input/otus_renamed.fastq
+MissingInputException: Missing input files for rule fastq_to_fasta:
+    output: vsearch_input/otus.fasta
+    wildcards: barcode=otus
+    affected files:
+        vsearch_input/otus.fastq
+
+WorkflowError:
+WorkflowError:
+    WorkflowError:
+        MissingInputException: Missing input files for rule fastq_to_fasta:
+            output: vsearch_input/barcode57_renamed.fasta
+            wildcards: barcode=barcode57_renamed
+            affected files:
+                vsearch_input/barcode57_renamed.fastq
+        MissingInputException: Missing input files for rule fastq_to_fasta:
+            output: vsearch_input/barcode57.fasta
+            wildcards: barcode=barcode57
+            affected files:
+                vsearch_input/barcode57.fastq
+    MissingInputException: Missing input files for rule fastq_to_fasta:
+        output: vsearch_input/merged_barcodes.fasta
+        wildcards: barcode=merged_barcodes
+        affected files:
+            vsearch_input/merged_barcodes.fastq
+MissingInputException: Missing input files for rule fastq_to_fasta:
+    output: vsearch_input/otus_renamed.fasta
+    wildcards: barcode=otus_renamed
+    affected files:
+        vsearch_input/otus_renamed.fastq
+MissingInputException: Missing input files for rule fastq_to_fasta:
+    output: vsearch_input/otus.fasta
+    wildcards: barcode=otus
+    affected files:
+        vsearch_input/otus.fastq
+unlocking
+removed all locks
