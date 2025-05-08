@@ -1,24 +1,24 @@
-keep_steps: True
-demultiplex: False
+keep_steps: True #Option to keep or delete each subsequent step by the pipeline
+demultiplex: True
 min: 100 #Minimum read length for filtering with nanofilt
 max: 10000 #Maximum read length for filtering with nanofilt
 quality: 15 #Minimum quality of a read for filtering with nanofilt
-trim_primers: True 
+trim_primers: False 
 primer_error_rate: 0.2 #maximum ratio of error used when trimming primers with cutadapt
-clustering: False 
+clustering: False
 cluster_perc: 0.97 #percent identity used for clustering with vsearch
 threads: 24
-group: ITS_fun #18_nem, 16S_bac or ITS_fun
+group: 16S_bac #18_nem, 16S_bac, ITS_fun or other - use ITS_fun in case you want to use ITS extract (with a custom database)
 barcode_file: barcode_files.txt #path to the file including your barcodes
 input_file: test_dataset_16S.fastq #path to query file (in case of no demultiplexing)
 forward_primer: AGAGTTTGATCMTGGCTCAG 
 reverse_primer: AAGTCGTAACAAGGTAACCG
-classifier: vsearch #emu or vsearch
+classifier: emu #emu or vsearch
 min_abundance: 0.0001 #minimum abundance in the resulting OTU table by emu
 rank: species #taxonomy at which emu will collapse the taxonomy of your OTU table
-vsearch_id: 0.97 #minimum percent identity used by vsearch
+vsearch_id: 0.95 #minimum percent identity used by vsearch
 custom_database: False
-custom_database_path: ./path_to_your_database #The path to your database - directory in case of emu, .fasta in case of vsearch
+custom_database_path: ITS_fun #The path to your database - directory in case of emu, .fasta in case of vsearch
 
 ####metabarcoding primers#####
 #18S nematodes (van himbeeck et al.) - forward primer: ctcaaagattaagccatgc; reverse primer: gctaccttgttacgactttt

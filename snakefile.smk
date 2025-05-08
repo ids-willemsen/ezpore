@@ -138,8 +138,11 @@ def read_barcodes(barcode_file): #function to parse barcodes from barcode file
         return [line.strip() for line in f if line.strip()]  # Remove empty lines
 
 barcode_file = config["barcode_file"]
-# Load barcodes
-barcodes = read_barcodes(barcode_file)
+
+if barcode_file != None:
+    barcodes = read_barcodes(barcode_file)
+#
+# if barcodes == []:
 
 #determines whether to keep outputs
 def maybe_temp(path):
@@ -277,7 +280,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output}
         """
 
-if config["group"] == "16S_bac" or config["group"] == "18S_nem":
+if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group"] == "other":
     if config.get("trim_primers", None) is False:
         if config.get("clustering", None) is False:
             if config["classifier"] == "emu":
@@ -365,7 +368,6 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                     seqtk seq -A {input} > {output}
                     """
 
-
 if config["group"] == "ITS_fun": #extracts ITS for fungi
     rule ITSexpress:
         input:
@@ -381,33 +383,41 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
         shell:
             "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
 
-    if config.get("clustering",None) is True:
-        if config["classifier"] == "emu":
-            rule move_vsearch: #temporarily moves files as input for vsearch
-                input:
-                    "ITS_extract/ITS_{barcode}.fastq"
-                output:
-                    maybe_temp("vsearch_input/{barcode}.fastq")
-                shell:
-                    """
-                    cp {input} {output}
-                    """
-
-
-
-    else:
-        rule move_class_ITS:  #temporarily moves files as input for vsearch
+    if config["classifier"] == "emu":
+        if config.get("clustering",None) is True:
+                rule move_vsearch: #temporarily moves files as input for vsearch
+                    input:
+                        "ITS_extract/ITS_{barcode}.fastq"
+                    output:
+                        maybe_temp("vsearch_input/{barcode}.fastq")
+                    shell:
+                        """
+                        cp {input} {output}
+                        """
+        else:
+                rule move_class_ITS:  #temporarily moves files as input for vsearch
+                    input:
+                        "ITS_extract/ITS_{barcode}.fastq"
+                    output:
+                        maybe_temp("classifier_input/{barcode}.fasta")
+                    conda:
+                        "ezpore_conda.yaml"
+                    shell:
+                        """
+                        seqtk seq -A {input} > {output}
+                        """
+    if config["classifier"] == "vsearch":
+        rule move_vsearch_ITSextract:  #temporarily moves files as input for vsearch
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
             output:
-                maybe_temp("classifier_input/{barcode}.fasta")
+                maybe_temp("vsearch_input/{barcode}.fastq")
             conda:
                 "ezpore_conda.yaml"
             shell:
                 """
-                seqtk seq -A {input} > {output}
+                cp {input} {output}
                 """
-
 
 if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range between 0-1,
     if config["classifier"] == "emu":
@@ -454,7 +464,6 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 """
                 cp {input} {output}
                 """
-
 
 
 #classification
@@ -619,6 +628,3 @@ if config["classifier"] == "vsearch":
                         else:
                             split.insert(1,"unknown")
                         w.write("\t".join(split) + "\n")
-
-
-
