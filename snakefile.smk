@@ -139,10 +139,8 @@ def read_barcodes(barcode_file): #function to parse barcodes from barcode file
 
 barcode_file = config["barcode_file"]
 
-if barcode_file != None:
-    barcodes = read_barcodes(barcode_file)
-#
-# if barcodes == []:
+barcodes = read_barcodes(barcode_file)
+
 
 #determines whether to keep outputs
 def maybe_temp(path):
