@@ -1,3 +1,4 @@
+keep_steps: True
 demultiplex: False
 min: 100 #Minimum read length for filtering with nanofilt
 max: 10000 #Maximum read length for filtering with nanofilt

@@ -141,6 +141,15 @@ barcode_file = config["barcode_file"]
 # Load barcodes
 barcodes = read_barcodes(barcode_file)
 
+#determines whether to keep outputs
+def maybe_temp(path):
+    if config.get("keep_steps", True):
+        return path
+    else:
+        return temp(path)
+
+
+
 #only add rules when emu/vsearch is selected
 def get_classifier_inputs():
     if config["classifier"] == "emu":
@@ -151,29 +160,9 @@ def get_classifier_inputs():
         return []
 
 
-
-
-
-# rule_all_classifier = list()
-#
-# if config["classifier"] == "emu":
-#     rule_all_classifier.append("results/emu-combined-{}-counts.tsv".format(config["rank"]))
-#     #rule_all_classifier.append(expand("results/{barcode}_rel-abundance.tsv",barcode=barcodes))
-# if config["classifier"] == "vsearch":
-#     rule_all_classifier.append('directory("results")')
-
 rule all:
     input:
-        #"{}".format(config["group"]),
-        #expand("selected_demux_barcodes/{barcode}.fastq",barcode=barcodes),
-        #expand("filtered/filtered_{barcode}.fastq", barcode=barcodes),
-        #expand("classifier_input/{barcode}.fasta",barcode=barcodes),
-        #rule_all_classifier
         get_classifier_inputs()
-        #"vsearch_input/merged_barcodes.fasta"
-        #directory("{}".format(config["group"]))
-        #"{}_{}.zip".format(config["group"],config["classifier"])
-#select correct database url
 url = ""
 
 if config["classifier"] == "emu":
@@ -226,7 +215,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
         input:
             fastq=config["input_file"]
         output:
-            fastq_files = expand("demux/unknown_run_id_EXP-NBD196_{barcode}.fastq",barcode=barcodes),
+            fastq_files = maybe_temp(expand("demux/unknown_run_id_EXP-NBD196_{barcode}.fastq",barcode=barcodes)),
             temp1 = temp("dorado-0.8.3-linux-x64.tar.gz"),
             temp2 = directory(temp("dorado-0.8.3-linux-x64/"))
         params:
@@ -249,7 +238,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
         input:
             "demux/unknown_run_id_EXP-NBD196_{barcode}.fastq"
         output:
-            "selected_demux_barcodes/{barcode}.fastq"
+            maybe_temp("selected_demux_barcodes/{barcode}.fastq")
         run:
             import shutil
             src = input[0]
@@ -261,7 +250,7 @@ else:
         input:
             "demux/{barcode}.fastq"
         output:
-            "selected_demux_barcodes/{barcode}.fastq"
+            maybe_temp("selected_demux_barcodes/{barcode}.fastq")
         run:
             import shutil
             src = input[0]
@@ -274,7 +263,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
     input:
         fastq="selected_demux_barcodes/{barcode}.fastq"
     output:
-        "filtered/filtered_{barcode}.fastq"
+        maybe_temp("filtered/filtered_{barcode}.fastq")
     conda:
         "ezpore_conda.yaml"
     log:
@@ -291,24 +280,38 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
 if config["group"] == "16S_bac" or config["group"] == "18S_nem":
     if config.get("trim_primers", None) is False:
         if config.get("clustering", None) is False:
-            rule move_class_filter:  #temporarily moves files as input for vsearch
-                input:
-                    "filtered/filtered_{barcode}.fastq"
-                output:
-                    "classifier_input/{barcode}.fasta"
-                conda:
-                    "ezpore_conda.yaml"
-                shell:
-                    """
-                    seqtk seq -A {input} > {output}
-                    """
+            if config["classifier"] == "emu":
+                rule move_class_filter:  #temporarily moves files as input for vsearch
+                    input:
+                        "filtered/filtered_{barcode}.fastq"
+                    output:
+                        maybe_temp("classifier_input/{barcode}.fasta")
+                    conda:
+                        "ezpore_conda.yaml"
+                    shell:
+                        """
+                        seqtk seq -A {input} > {output}
+                        """
+
+            if config["classifier"] == "vsearch":
+                rule move_filtered_vsearch:  #temporarily moves files as input for vsearch
+                    input:
+                        "filtered/filtered_{barcode}.fastq"
+                    output:
+                        maybe_temp("vsearch_input/{barcode}.fastq")
+                    conda:
+                        "ezpore_conda.yaml"
+                    shell:
+                        """
+                        cp {input} {output}
+                        """
 
         elif config.get("clustering", None) is True:
             rule move_vsearch_filter:  #temporarily moves files as input for vsearch
                 input:
                     "filtered/filtered_{barcode}.fastq"
                 output:
-                    temp("vsearch_input/{barcode}.fastq")
+                    maybe_temp("vsearch_input/{barcode}.fastq")
                 conda:
                     "ezpore_conda.yaml"
                 shell:
@@ -321,7 +324,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
             input:
                 fastq="filtered/filtered_{barcode}.fastq"
             output:
-                "trimmed/trimmed_{barcode}.fastq"
+                maybe_temp("trimmed/trimmed_{barcode}.fastq")
             conda:
                 "ezpore_conda.yaml"
             log:
@@ -342,7 +345,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                 input:
                     "trimmed/trimmed_{barcode}.fastq"
                 output:
-                    temp("vsearch_input/{barcode}.fastq")
+                    maybe_temp("vsearch_input/{barcode}.fastq")
                 conda:
                     "ezpore_conda.yaml"
                 shell:
@@ -354,7 +357,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem":
                 input:
                     "trimmed/trimmed_{barcode}.fastq"
                 output:
-                    "classifier_input/{barcode}.fasta"
+                    maybe_temp("classifier_input/{barcode}.fasta")
                 conda:
                     "ezpore_conda.yaml"
                 shell:
@@ -368,7 +371,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
         input:
             fastq = "filtered/filtered_{barcode}.fastq"
         output:
-            "ITS_extract/ITS_{barcode}.fastq"
+            maybe_temp("ITS_extract/ITS_{barcode}.fastq")
         params:
             threads = config["threads"]
         conda:
@@ -384,7 +387,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
                 input:
                     "ITS_extract/ITS_{barcode}.fastq"
                 output:
-                    temp("vsearch_input/{barcode}.fastq")
+                    maybe_temp("vsearch_input/{barcode}.fastq")
                 shell:
                     """
                     cp {input} {output}
@@ -397,7 +400,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
             output:
-                "classifier_input/{barcode}.fasta"
+                maybe_temp("classifier_input/{barcode}.fasta")
             conda:
                 "ezpore_conda.yaml"
             shell:
@@ -412,7 +415,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             input:
                 "vsearch_input/{barcode}.fastq"
             output:
-                "clustered/clustered_{barcode}.fasta"
+                maybe_temp("clustered/clustered_{barcode}.fasta")
             params:
                 cluster_perc = config["cluster_perc"],
                 threads = config["threads"]
@@ -430,7 +433,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             input:
                 "clustered/clustered_{barcode}.fasta"
             output:
-                "clustered_rerep/rerep_clustered_{barcode}.fasta"
+                maybe_temp("clustered_rerep/rerep_clustered_{barcode}.fasta")
             conda:
                 "ezpore_conda.yaml"
             log:
@@ -444,7 +447,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             input:
                 "clustered_rerep/rerep_clustered_{barcode}.fasta"
             output:
-                "classifier_input/{barcode}.fasta"
+                maybe_temp("classifier_input/{barcode}.fasta")
             conda:
                 "ezpore_conda.yaml"
             shell:
@@ -468,7 +471,7 @@ if config["classifier"] == "emu":
             fasta = "classifier_input/{barcode}.fasta",
             db_path = database
         output:
-            "results/{barcode}_rel-abundance.tsv",
+            maybe_temp("results/{barcode}_rel-abundance.tsv"),
         params:
             threads = config["threads"],
             min_abundance = config["min_abundance"]
@@ -504,7 +507,7 @@ if config["classifier"] == "vsearch":
         input:
             "vsearch_input/{barcode}.fastq"
         output:
-            "vsearch_input/{barcode}.fasta"
+            maybe_temp("vsearch_input/{barcode}.fasta")
         conda:
             "ezpore_conda.yaml"
         shell:
@@ -517,7 +520,7 @@ if config["classifier"] == "vsearch":
         input:
             "vsearch_input/{barcode}.fasta"
         output:
-            "vsearch_input/{barcode}_renamed.fasta"
+            maybe_temp("vsearch_input/{barcode}_renamed.fasta")
         params:
             sample="{barcode}"
         shell:
@@ -529,7 +532,7 @@ if config["classifier"] == "vsearch":
         input:
             expand("vsearch_input/{barcode}_renamed.fasta",barcode=barcodes)
         output:
-            "vsearch_input/merged_barcodes.fasta"
+            maybe_temp("vsearch_input/merged_barcodes.fasta")
         shell:
             """
             cat {input} > {output}
@@ -540,22 +543,22 @@ if config["classifier"] == "vsearch":
         cluster_perc = config["cluster_perc"]
 
 
-    rule cluster_OTU: #problem might be here?
+    rule cluster_OTU:
         input:
             "vsearch_input/merged_barcodes.fasta"
         output:
-            "vsearch_input/otus_renamed.fasta"
+            maybe_temp("vsearch_input/otus_renamed.fasta")
         params:
             cluster_perc=cluster_perc
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc clusters.uc --relabel otu
-            # """
+            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu
+            """
 
 
-    rule table_OTU: #PROBLEM IS HERE
+    rule table_OTU:
         input:
             otus="vsearch_input/otus_renamed.fasta",
             reads="vsearch_input/merged_barcodes.fasta"
