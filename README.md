@@ -83,6 +83,7 @@ The `settingsfile.yaml` includes following arguments:
 
 | argument | description | input type | default value |
 | -------- | ----------- | ------------  | ------------- |
+|keep_steps | option to delete steps to avoid directory bloating | True/False | True |
 |demultiplex | demultiplexes the data using dorado | True/False | True |
 |min | the minimum read length (in bp). Shorter reads are removed | integer | 100 | 
 |max |the maximum read length (in bp). Larger reads are removed | INTEGER | 10000 |
