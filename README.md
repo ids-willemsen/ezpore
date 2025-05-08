@@ -1,4 +1,4 @@
-<img src="ezpore.png" alt="image info" width="35%">
+<img src="ezpore_logo.png" alt="image info" width="35%">
 
 # ezpore
 
