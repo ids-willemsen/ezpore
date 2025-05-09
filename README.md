@@ -108,6 +108,13 @@ The `settingsfile.yaml` includes following arguments:
 ### Using a custom database
 `ezpore` is equipped to automatically download the 16S SILVA database for bacteria, the UNITE ITS database for fungi, and our in-house 18S Nematode database for both 'emu' and 'vsearch' classification. If you prefer to use your own database, this is possible by changing the custom_database argument to 'True' and adding the database path to custom_database_path. In this case, the database files should be present should be in the correct format as used by vsearch/emu. If you choose to use emu, the custom_database_path should lead to a directory containing the taxonomy.tsv and species_taxid.fasta. If you choose to use vsearch, the custom_database_path should lead to a .fasta file vsearch database format. Mind that the `group` should still be set in the settingsfile (e.g. in the case you want to use ITS extraction set it to ITS_fun or if you would like to trim primers use 16S_bac/18S_nem).
 
+### Output
+## Emu
+When using emu, the `results` folder contains taxonomic identification tables for each barcode, and two combined OTU tables containing either relative abundance or total counts. Emu combines clustered OTUs when they are identified to the same taxonomic group. If you want to keep each OTU separate, we recommend using vsearch.
+
+## Vsearch
+When using vsearch, the `results` folder contains a combined OTU table with taxonomy where the total reads per barcode and the taxonomic group of an OTU is given. If you wish to check the sequence of an OTU, these can be found in `vsearch_input/otus_renamed.fasta`.
+
 ### Bugs and requests
 If you encounter any bugs or you wish to request additional features, please open an issue on this GitHub page.
 
