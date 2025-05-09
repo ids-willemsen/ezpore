@@ -63,8 +63,8 @@ conda install snakemake
 To 'install' `ezpore`:
 
 1) download the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) file from the github and extract it to the directory of your choice. The `ezpore.zip` contains all files necessary for your run.
-2) copy your sequencing file (fastq) to the same folder that contains the extracted `ezpore.zip` contents
-3) In the case of demultiplexed data: in the extraction folder containing the `ezpore.zip` contents, create a folder called 'demux' and copy your demultiplexed files to there.
+2) copy your sequencing file (fastq) to the same folder that contains the extracted [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) contents
+3) In the case of demultiplexed data: in the extraction folder containing the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) contents, create a folder called 'demux' and copy your demultiplexed files to there.
 4) Edit the settingsfile.yaml to correspond with your preferred run settings - arguments are explained below.
 5) Edit the barcode_files.txt to only contain barcodes you want to be analyzed - in the case this file is empty or not present, the `ezpore` pipeline will use all files.
 
