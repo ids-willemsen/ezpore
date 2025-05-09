@@ -62,7 +62,7 @@ conda install snakemake
 ### Downloading and running ezpore
 To 'install' `ezpore`:
 
-1) download the `ezpore.zip` file from the github and extract it to the directory of your choice. The `ezpore.zip` contains all files necessary for your run.
+1) download the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) file from the github and extract it to the directory of your choice. The `ezpore.zip` contains all files necessary for your run.
 2) copy your sequencing file (fastq) to the same folder that contains the extracted `ezpore.zip` contents
 3) In the case of demultiplexed data: in the extraction folder containing the `ezpore.zip` contents, create a folder called 'demux' and copy your demultiplexed files to there.
 4) Edit the settingsfile.yaml to correspond with your preferred run settings - arguments are explained below.
