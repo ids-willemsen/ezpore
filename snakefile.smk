@@ -561,7 +561,7 @@ if config["classifier"] == "vsearch":
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu
+            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both
             """
 
 
@@ -598,7 +598,7 @@ if config["classifier"] == "vsearch":
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only
+            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both
             """
 
     rule combine_otu_table_and_taxonomy:
