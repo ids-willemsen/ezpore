@@ -164,52 +164,54 @@ def get_classifier_inputs():
 rule all:
     input:
         get_classifier_inputs()
-url = ""
 
-if config["classifier"] == "emu":
-    if config["group"] == "16S_bac":
-        url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac_emu.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
-        =i1csixgm&dl=1"
-    elif config["group"] == "ITS_fun":
-        url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun_emu.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
-        =as5e3x7x&dl=1"
-    elif config["group"] == "18S_nem":
-        url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem_emu.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
-        =dghk0otk&dl=1"
+if config.get("custom_database", None) is False:
+    url = ""
 
-elif config["classifier"] == "vsearch":
-    if config["group"] == "16S_bac":
-        url = "https://www.dropbox.com/scl/fi/p4elp4c6thvt7ivwtsr47/16S_bac_vsearch.zip?rlkey=4t02n123wxwsa4n4ap8mnu7m2&st=wn5r9awc&dl=0"
-    elif config["group"] == "ITS_fun":
-        url = "https://www.dropbox.com/scl/fi/dx55tw2t7hionzkauildo/ITS_fun_vsearch.zip?rlkey=guuisio9ct1j1oh7z17aq92ae&st=0zlgji0h&dl=0"
-    elif config["group"] == "18S_nem":
-        url = "https://www.dropbox.com/scl/fi/ktux9p25tvm8598cmh9bj/18S_nem_vsearch.zip?rlkey=i7rdg6lbxreyo553lwtv7re74&st=1sxxm1pk&dl=0"
-
-def get_database_output():
     if config["classifier"] == "emu":
-        return [directory("{}".format(config["group"]))]
+        if config["group"] == "16S_bac":
+            url = "https://www.dropbox.com/scl/fi/zrh0ujr4bkj4uqbq2c7bo/16S_bac_emu.zip?rlkey=mwr6njaxjvd6yes9mmpxg779m&st\
+            =i1csixgm&dl=1"
+        elif config["group"] == "ITS_fun":
+            url = "https://www.dropbox.com/scl/fi/2mjmt34z0zmr204b3ed2s/ITS_fun_emu.zip?rlkey=ew99c0jzq9ujmlcf1b67vemch&st\
+            =as5e3x7x&dl=1"
+        elif config["group"] == "18S_nem":
+            url = "https://www.dropbox.com/scl/fi/r5llvu4s6x32pcr3znsxc/18S_nem_emu.zip?rlkey=1f8g7qbsyvk9oo447ha5l6m97&st\
+            =dghk0otk&dl=1"
+
     elif config["classifier"] == "vsearch":
-        return ["{}/{}_vsearch.fasta".format(config["group"],config["group"])]
-    else:
-        return []
+        if config["group"] == "16S_bac":
+            url = "https://www.dropbox.com/scl/fi/p4elp4c6thvt7ivwtsr47/16S_bac_vsearch.zip?rlkey=4t02n123wxwsa4n4ap8mnu7m2&st=wn5r9awc&dl=0"
+        elif config["group"] == "ITS_fun":
+            url = "https://www.dropbox.com/scl/fi/dx55tw2t7hionzkauildo/ITS_fun_vsearch.zip?rlkey=guuisio9ct1j1oh7z17aq92ae&st=0zlgji0h&dl=0"
+        elif config["group"] == "18S_nem":
+            url = "https://www.dropbox.com/scl/fi/ktux9p25tvm8598cmh9bj/18S_nem_vsearch.zip?rlkey=i7rdg6lbxreyo553lwtv7re74&st=1sxxm1pk&dl=0"
+
+    def get_database_output():
+        if config["classifier"] == "emu":
+            return [directory("{}".format(config["group"]))]
+        elif config["classifier"] == "vsearch":
+            return ["{}/{}_vsearch.fasta".format(config["group"],config["group"])]
+        else:
+            return []
 
 
-rule download_database:
-    output:
-        get_database_output()
-    conda:
-        "ezpore_conda.yaml"
-    params:
-        url = f"{url}",
-        group = config["group"],
-        classifier = config["classifier"]
-    log:
-        "logs/download_database.log"
-    shell:
-        """
-        wget -O {params.group}_{params.classifier}.zip "{params.url}"        
-        unzip {params.group}_{params.classifier}.zip
-        """
+    rule download_database:
+        output:
+            get_database_output()
+        conda:
+            "ezpore_conda.yaml"
+        params:
+            url = f"{url}",
+            group = config["group"],
+            classifier = config["classifier"]
+        log:
+            "logs/download_database.log"
+        shell:
+            """
+            wget -O {params.group}_{params.classifier}.zip "{params.url}"        
+            unzip {params.group}_{params.classifier}.zip
+            """
 
 if config.get("demultiplex", None) is True:  # Only run if demultiplexing is enabled
     rule demultiplex:
