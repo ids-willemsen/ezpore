@@ -55,21 +55,26 @@ navigate trough the interactive installation shell: Choose **yes** by “Do you 
 
 4) Install snakemake with the following command:
 ```
-conda install snakemake
+conda install -c conda-forge -c bioconda snakemake
 ```
 
 
 ### Downloading and running ezpore
 To 'install' `ezpore`:
 
-1) download the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) file from the github and extract it to the directory of your choice. The `ezpore.zip` contains all files necessary for your run.
-2) copy your sequencing file (fastq) to the same folder that contains the extracted [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) contents
+1) clone the repository into your local directory using `git clone https://github.com/ids-willemsen/ezpore.git` or download the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) file from the github and extract it to the directory of your choice. The `ezpore.zip` contains all files necessary for your run.
+2) copy your sequencing file (fastq) to the same folder that contains the extracted [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) file, or cd to the ezpore folder.
 3) In the case of demultiplexed data: in the extraction folder containing the [ezpore.zip](https://github.com/ids-willemsen/ezpore/raw/main/ezpore.zip) contents, create a folder called 'demux' and copy your demultiplexed files to there.
 4) Edit the settingsfile.yaml to correspond with your preferred run settings - arguments are explained below.
-5) Edit the barcode_files.txt to only contain barcodes you want to be analyzed - in the case this file is empty or not present, the `ezpore` pipeline will use all files.
+5) Edit the barcode_files.txt to only contain barcodes you want to be analyzed - in the case this file is empty or not present, the `ezpore` pipeline will use all files. 
 
-6) Your resulting folder should contain: 1. The snakefile.smk 2. The settingsfile.yaml 3. The barcode_files.txt 4. The ezpore_conda.yaml 5. Either a non-demultiplexed fastq or a folder called 'demux' containing demultiplexed files!
-7) Finally, run the `ezpore` pipeline with the command:
+6) Before running `ezpore` your folder should contain the following files:
+   1. snakefile.smk
+   2. settingsfile.yaml
+   3. barcode_files.txt
+   4. ezpore_conda.yaml
+   5. A non-demultiplexed fastq or a folder called 'demux' containing demultiplexed files!
+8) Finally, run the `ezpore` pipeline with the command, please be nice if you are running on a cluster/server:
 
 ```
 snakemake --snakefile snakefile.smk --use-conda --cores all  
@@ -88,14 +93,14 @@ The `settingsfile.yaml` includes following arguments:
 |min | the minimum read length (in bp). Shorter reads are removed | integer | 100 | 
 |max |the maximum read length (in bp). Larger reads are removed | INTEGER | 10000 |
 |quality | the minimum average read quality to be retained. Reads with lower Q score are removed | INTEGER | 15 |
-|trim_primers | removes primers using cutadapt | True/False | True |
+|trim_primers | removes primers using cutadapt | True/False | False |
 |primer_error_rate | the maximum allowed error rate for primer trimming. | UNIT INTERVAL[0-1} | 0.2 |
-|clustering | clusters sequences using vsearch | True/False | True |
+|clustering | clusters sequences using vsearch | True/False | False |
 |cluster_perc | the percentage identity to cluster on using vsearch. | UNIT INTERVAL[0-1} | 0.97 |
 |threads | the number of threads are used throughout the pipeline | INTEGER | 24 |
 |group | the group of organisms: bacteria (16S_bac), nematodes (18S_nem) or fungi (ITS_fun) | STRING | none |
 |barcode_file | the path to your barcode_files.txt| STRING| none |
-|input_file | the input file (.fastq) of the analysis, in case demultiplexing is not performed you can leave this empty | .fastq file | none | 
+|input_file | the input file (.fastq) of the analysis, in case demultiplexing is not performed you leave this empty like `""` | .fastq file | none | 
 |forward_primer | the primer sequence of your forward primer | STRING| none|
 |forward_primer | the primer sequence of your reverse primer | STRING| none|
 |classifier | the classifier you would like to use for taxonomic identification| emu/vsearch| none |
