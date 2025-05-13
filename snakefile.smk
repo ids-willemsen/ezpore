@@ -121,7 +121,7 @@ def validate_config(config):
         raise ValueError("Parameter 'primer_error_rate' should be between 0 and 1.")
 
     # Check if 'group' is one of the allowed values
-    allowed_groups = {"16S_bac", "18S_nem", "ITS_fun"}
+    allowed_groups = {"16S_bac", "18S_nem", "ITS_fun", "other"}
     if config["group"] not in allowed_groups:
         raise ValueError(f"Parameter 'group' must be one of {allowed_groups}, mind that this is case sensitive. "
                          f"Found: {config['group']}")
