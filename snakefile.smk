@@ -444,13 +444,15 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 "clustered/clustered_{barcode}.fasta"
             output:
                 maybe_temp("clustered_rerep/rerep_clustered_{barcode}.fasta")
+            params:
+                threads = config["threads"]
             conda:
                 "ezpore_conda.yaml"
             log:
                 "logs/vsearch_rereplicate_{barcode}.log"
             shell:
                 """
-                vsearch --rereplicate {input} --relabel sequence --output {output}
+                vsearch --rereplicate {input} --relabel sequence --output {output} --threads {params.threads}
                 """
 
         rule move_emu_cluster:  #temporarily moves files as input for vsearch
@@ -558,12 +560,13 @@ if config["classifier"] == "vsearch":
         output:
             maybe_temp("vsearch_input/otus_renamed.fasta")
         params:
-            cluster_perc=cluster_perc
+            cluster_perc=cluster_perc,
+            threads = config["threads"]
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both
+            vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both --threads {params.threads}
             """
 
 
@@ -574,12 +577,13 @@ if config["classifier"] == "vsearch":
         output:
             "results/otu_table.tsv"
         params:
-            cluster_perc=cluster_perc
+            cluster_perc=cluster_perc,
+            threads = config["threads"]
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only
+            vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only --threads {params.threads}
             """
 
     if config.get("custom_database", None) is False:
@@ -595,12 +599,13 @@ if config["classifier"] == "vsearch":
         output:
             "results/otu_taxonomy.tsv",
         params:
-            id=config["vsearch_id"]
+            id=config["vsearch_id"],
+            threads=config["threads"]
         conda:
             "ezpore_conda.yaml"
         shell:
             """
-            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both
+            vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {params.threads}
             """
 
     rule combine_otu_table_and_taxonomy:
