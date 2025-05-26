@@ -543,10 +543,12 @@ if config["classifier"] == "vsearch":
         input:
             expand("vsearch_input/{barcode}_renamed.fasta",barcode=barcodes)
         output:
-            maybe_temp("vsearch_input/merged_barcodes.fasta")
+            faulthy = temp("vsearch_input/merged_barcodes_-.fasta"),
+            clean = maybe_temp("vsearch_input/merged_barcodes.fasta")
         shell:
             """
-            cat {input} > {output}
+            cat {input} > {output.faulthy}
+            sed '/^>/ s/-/_/g' {output.faulthy} > {output.clean}
             """
 
     cluster_perc = 1.0
