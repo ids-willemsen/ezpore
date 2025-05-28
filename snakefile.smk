@@ -488,6 +488,8 @@ if config["classifier"] == "emu":
             min_abundance = config["min_abundance"]
         conda:
             "ezpore_conda.yaml"
+        resources:
+            mem_mb = config["RAM"]
         log:
             "logs/emu_{barcode}.log"
         shell:
