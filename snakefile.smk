@@ -218,7 +218,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
         input:
             fastq=config["input_file"]
         output:
-            fastq_files = maybe_temp(expand("demux/unknown_run_id_EXP-NBD196_{barcode}.fastq",barcode=barcodes)),
+            fastq_files = maybe_temp(expand("demux/{prefix}_{barcode}.fastq",barcode=barcodes)),
             temp1 = temp("dorado-0.8.3-linux-x64.tar.gz"),
             temp2 = directory(temp("dorado-0.8.3-linux-x64/"))
         params:
@@ -477,6 +477,7 @@ if config["classifier"] == "emu":
     elif config.get("custom_database",None) is True:
         database = config["custom_database_path"]
 
+    slots = int(int(config["RAM"])/5)
     rule emu: #runs emu
         input:
             fasta = "classifier_input/{barcode}.fasta",
@@ -489,7 +490,8 @@ if config["classifier"] == "emu":
         conda:
             "ezpore_conda.yaml"
         resources:
-            mem_mb = config["RAM"]
+            mem_mb = config["RAM"],
+            emu_slots = slots
         log:
             "logs/emu_{barcode}.log"
         shell:
