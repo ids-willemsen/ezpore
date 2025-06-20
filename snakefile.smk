@@ -216,9 +216,9 @@ if config.get("custom_database", None) is False:
 if config.get("demultiplex", None) is True:  # Only run if demultiplexing is enabled
     rule demultiplex:
         input:
-            fastq=config["input_file"]
+            fastq = config["input_file"]
         output:
-            fastq_files = maybe_temp(expand("demux/{prefix}_{barcode}.fastq",barcode=barcodes)),
+            fastq_files = maybe_temp(expand("demux/{barcode}.fastq", barcode=barcodes)),
             temp1 = temp("dorado-0.8.3-linux-x64.tar.gz"),
             temp2 = directory(temp("dorado-0.8.3-linux-x64/"))
         params:
@@ -235,11 +235,18 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
                 --emit-fastq \
                 --output-dir {params.demux_dir} \
                 {input.fastq}
+
+            # Rename files to barcodeXX.fastq
+            for file in {params.demux_dir}/*_barcode*.fastq; do
+                newname=$(echo "$file" | grep -o 'barcode[0-9]\\+\\.fastq')
+                mv "$file" "{params.demux_dir}/$newname"
+            done
             """
+
 
     rule select_files: #copies only the selected files based on barcode_file.txt
         input:
-            "demux/unknown_run_id_EXP-NBD196_{barcode}.fastq"
+            "demux/{barcode}.fastq"
         output:
             maybe_temp("selected_demux_barcodes/{barcode}.fastq")
         run:
@@ -323,7 +330,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
                     """
 
     if config.get("trim_primers", None) is True:
-        rule primer_trimming: #trimps primers with cutadapt
+        rule primer_trimming: #trims primers with cutadapt
             input:
                 fastq="filtered/filtered_{barcode}.fastq"
             output:
