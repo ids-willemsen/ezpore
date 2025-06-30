@@ -235,6 +235,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
                 --emit-fastq \
                 --output-dir {params.demux_dir} \
                 {input.fastq}
+<<<<<<< HEAD
 
             # Rename files to barcodeXX.fastq
             for file in {params.demux_dir}/*_barcode*.fastq; do
@@ -248,6 +249,21 @@ rule select_files: #copies only the selected files based on barcode_file.txt
     input:
         "demux/{barcode}.fastq"
     output:
+=======
+
+            # Rename files to barcodeXX.fastq
+            for file in {params.demux_dir}/*_barcode*.fastq; do
+                newname=$(echo "$file" | grep -o 'barcode[0-9]\\+\\.fastq')
+                mv "$file" "{params.demux_dir}/$newname"
+            done
+            """
+
+
+    rule select_files: #copies only the selected files based on barcode_file.txt
+        input:
+            "demux/{barcode}.fastq"
+        output:
+>>>>>>> ff8ca5364a3dd6d323981d9998f4e9bd92d42249
             maybe_temp("selected_demux_barcodes/{barcode}.fastq")
         run:
             import shutil
