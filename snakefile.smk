@@ -241,13 +241,13 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
                 newname=$(echo "$file" | grep -o 'barcode[0-9]\\+\\.fastq')
                 mv "$file" "{params.demux_dir}/$newname"
             done
-            """
+        """
 
 
-    rule select_files: #copies only the selected files based on barcode_file.txt
-        input:
-            "demux/{barcode}.fastq"
-        output:
+rule select_files: #copies only the selected files based on barcode_file.txt
+    input:
+        "demux/{barcode}.fastq"
+    output:
             maybe_temp("selected_demux_barcodes/{barcode}.fastq")
         run:
             import shutil
@@ -290,7 +290,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
 if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group"] == "other":
     if config.get("trim_primers", None) is False:
         if config.get("clustering", None) is False:
-            if config["classifier"] == "emu":
+            if config['classifier'] in ['vsearch', 'emu'] and config['OTU'] is False:
                 rule move_class_filter:  #temporarily moves files as input for vsearch
                     input:
                         "filtered/filtered_{barcode}.fastq"
@@ -303,7 +303,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
                         seqtk seq -A {input} > {output}
                         """
 
-            if config["classifier"] == "vsearch":
+            if config["classifier"] == "vsearch" and config['OTU'] is True:
                 rule move_filtered_vsearch:  #temporarily moves files as input for vsearch
                     input:
                         "filtered/filtered_{barcode}.fastq"
@@ -390,7 +390,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
         shell:
             "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
 
-    if config["classifier"] == "emu":
+    if config['classifier'] in ['vsearch', 'emu'] and config['OTU'] is False:
         if config.get("clustering",None) is True:
                 rule move_vsearch: #temporarily moves files as input for vsearch
                     input:
@@ -413,7 +413,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
                         """
                         seqtk seq -A {input} > {output}
                         """
-    if config["classifier"] == "vsearch":
+    if config["classifier"] == "vsearch" and config['OTU'] is True:
         rule move_vsearch_ITSextract:  #temporarily moves files as input for vsearch
             input:
                 "ITS_extract/ITS_{barcode}.fastq"
@@ -427,7 +427,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
                 """
 
 if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range between 0-1,
-    if config["classifier"] == "emu":
+    if config['classifier'] in ['vsearch', 'emu'] and config['OTU'] is False:
         rule vsearch_clustering: #clustering with vsearch
             input:
                 "vsearch_input/{barcode}.fastq"
@@ -484,7 +484,6 @@ if config["classifier"] == "emu":
     elif config.get("custom_database",None) is True:
         database = config["custom_database_path"]
 
-    slots = int(int(config["RAM"])/5)
     rule emu: #runs emu
         input:
             fasta = "classifier_input/{barcode}.fasta",
@@ -497,8 +496,7 @@ if config["classifier"] == "emu":
         conda:
             "ezpore_conda.yaml"
         resources:
-            mem_mb = config["RAM"],
-            emu_slots = slots
+            emu_slots = config["emu_slots"]
         log:
             "logs/emu_{barcode}.log"
         shell:
@@ -523,8 +521,7 @@ if config["classifier"] == "emu":
             emu combine-outputs results {params.rank}
             """
 
-
-if config["classifier"] == "vsearch":
+if config["classifier"] == "vsearch" and config['OTU'] is True:
     rule fastq_to_fasta:
         input:
             "vsearch_input/{barcode}.fastq"
@@ -549,6 +546,7 @@ if config["classifier"] == "vsearch":
             """
             sed 's/^>.*/>{params.sample}/' {input} > {output}
             """
+    if config.get("clustering", None) is True:
 
     rule merge_fastas:
         input:
@@ -646,3 +644,7 @@ if config["classifier"] == "vsearch":
                         else:
                             split.insert(1,"unknown")
                         w.write("\t".join(split) + "\n")
+
+
+if config["classifier"] == "vsearch" and config['OTU'] is False:
+    #DIT IS VOOR MORGEN
