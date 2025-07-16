@@ -678,9 +678,9 @@ if config["classifier"] == "vsearch":
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {params.threads}
                 """
-    import glob
-    import os
-    import pandas as pd
+        import glob
+        import os
+        import pandas as pd
 
     rule count_species:
         input:
@@ -688,21 +688,28 @@ if config["classifier"] == "vsearch":
         output:
             temp("counts/barcode_{barcode}.tsv")
         run:
-            df = pd.read_csv(input[0], sep="\t", header=None, usecols=[1])
-            species_counts = df[1].value_counts().reset_index()
-            species_counts.columns = ['species', 'count']
-            species_counts.to_csv(output[0], sep="\t", index=False, header=False)
+            if os.stat(input[0]).st_size == 0:
+                # Write an empty count file
+                with open(output[0], 'w') as f:
+                    pass  # creates an empty file
+            else:
+                df = pd.read_csv(input[0], sep="\t", header=None, usecols=[1])
+                species_counts = df[1].value_counts().reset_index()
+                species_counts.columns = ['species', 'count']
+                species_counts.to_csv(output[0], sep="\t", index=False, header=False)
 
-    rule combine_counts:
-        input:
-            expand("counts/barcode_{barcode}.tsv", barcode=barcodes)
-        output:
-            "results/species_count_matrix.tsv"
-        run:
-            dfs = []
-            for file in input:
-                barcode = os.path.basename(file).split("_")[1].split(".")[0]
-                df = pd.read_csv(file, sep="\t", header=None, names=["species", barcode])
-                dfs.append(df.set_index("species"))
-            combined = pd.concat(dfs, axis=1).fillna(0).astype(int)
-            combined.to_csv(output[0], sep="\t")
+
+
+        rule combine_counts:
+            input:
+                expand("counts/barcode_{barcode}.tsv", barcode=barcodes)
+            output:
+                "results/species_count_matrix.tsv"
+            run:
+                dfs = []
+                for file in input:
+                    barcode = os.path.basename(file).split("_")[1].split(".")[0]
+                    df = pd.read_csv(file, sep="\t", header=None, names=["species", barcode])
+                    dfs.append(df.set_index("species"))
+                combined = pd.concat(dfs, axis=1).fillna(0).astype(int)
+                combined.to_csv(output[0], sep="\t")
