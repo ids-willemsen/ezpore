@@ -671,7 +671,7 @@ if config["classifier"] == "vsearch":
                 id=config["vsearch_id"],
                 threads=config["threads"]
             resources:
-                slots = config["classifier_slots"]
+                classifier_slots = 1
             conda:
                 "ezpore_conda.yaml"
             shell:
