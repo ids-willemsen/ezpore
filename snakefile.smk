@@ -682,21 +682,21 @@ if config["classifier"] == "vsearch":
         import os
         import pandas as pd
 
-    rule count_species:
-        input:
-            "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
-        output:
-            temp("counts/barcode_{barcode}.tsv")
-        run:
-            if os.stat(input[0]).st_size == 0:
-                # Write an empty count file
-                with open(output[0], 'w') as f:
-                    pass  # creates an empty file
-            else:
-                df = pd.read_csv(input[0], sep="\t", header=None, usecols=[1])
-                species_counts = df[1].value_counts().reset_index()
-                species_counts.columns = ['species', 'count']
-                species_counts.to_csv(output[0], sep="\t", index=False, header=False)
+        rule count_species:
+            input:
+                "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
+            output:
+                temp("counts/barcode_{barcode}.tsv")
+            run:
+                if os.stat(input[0]).st_size == 0:
+                    # Write an empty count file
+                    with open(output[0], 'w') as f:
+                        pass  # creates an empty file
+                else:
+                    df = pd.read_csv(input[0], sep="\t", header=None, usecols=[1])
+                    species_counts = df[1].value_counts().reset_index()
+                    species_counts.columns = ['species', 'count']
+                    species_counts.to_csv(output[0], sep="\t", index=False, header=False)
 
 
 
@@ -708,7 +708,7 @@ if config["classifier"] == "vsearch":
             run:
                 dfs = []
                 for file in input:
-                    barcode = os.path.basename(file).split("_")[1].split(".")[0]
+                    barcode = os.path.basename(file).split(".")[0]
                     df = pd.read_csv(file, sep="\t", header=None, names=["species", barcode])
                     dfs.append(df.set_index("species"))
                 combined = pd.concat(dfs, axis=1).fillna(0).astype(int)
