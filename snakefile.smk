@@ -70,8 +70,7 @@ def validate_config(config):
     required_keys = [
         'demultiplex', 'min', 'max', 'quality', 'trim_primers', 
         'primer_error_rate', 'min_abundance', 'cluster_perc', 'clustering',
-        'rank', 'threads', 'input_file', 'group', 'barcode_file', 'classifier_slots',
-        'OTU'
+        'rank', 'input_file', 'group', 'barcode_file', 'OTU'
     ]
 
     # Check for missing keys
@@ -98,8 +97,6 @@ def validate_config(config):
         raise TypeError("Parameter 'primer_error_rate' should be a float.")
     if not isinstance(config["min_abundance"], float):
         raise TypeError("Parameter 'min_abundance' should be a float.")
-    if not isinstance(config["threads"], int):
-        raise TypeError("Parameter 'threads' should be an integer.")
     if not isinstance(config["input_file"], str):
         raise TypeError("Parameter 'input_file' should be a string.")
     if not isinstance(config["group"], str):
@@ -226,7 +223,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
             temp2 = directory(temp("dorado-0.8.3-linux-x64/"))
         params:
             demux_dir = "demux"
-        threads: config["threads"]
+        threads: 2
         log:
             "logs/demultiplex.log"
         shell:
@@ -342,14 +339,14 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
                 "ezpore_conda.yaml"
             log:
                 "logs/cutadapt_{barcode}.log"
+            threads: 1
             params:
                 primer_error_rate = config["primer_error_rate"],
-                threads = config["threads"],
                 fw_primer = config["forward_primer"],
                 rv_primer = config["reverse_primer"]
             shell:
                 """
-                cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {params.threads} \
+                cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {threads} \
                 -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output}
                 """
 
@@ -384,14 +381,13 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
             fastq = "filtered/filtered_{barcode}.fastq"
         output:
             maybe_temp("ITS_extract/ITS_{barcode}.fastq")
-        params:
-            threads = config["threads"]
+        threads: 2
         conda:
             "ezpore_conda.yaml"
         log:
             "logs/itsexpress_{barcode}.log"
         shell:
-            "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {params.threads}"
+            "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {threads}"
 
     if config['classifier'] in ['vsearch', 'emu'] and config['OTU'] is False:
         if config.get("clustering",None) is True:
@@ -436,16 +432,16 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 "vsearch_input/{barcode}.fastq"
             output:
                 maybe_temp("clustered/clustered_{barcode}.fasta")
+            threads: 2
             params:
-                cluster_perc = config["cluster_perc"],
-                threads = config["threads"]
+                cluster_perc = config["cluster_perc"]
             conda:
                 "ezpore_conda.yaml"
             log:
                 "logs/vsearch_cluster_{barcode}.log"
             shell:
                 """
-                vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {params.threads} \
+                vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {threads} \
                     --consout {output}
                 """
         if config["classifier"] == "emu":
@@ -454,15 +450,14 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                     "clustered/clustered_{barcode}.fasta"
                 output:
                     maybe_temp("clustered_rerep/rerep_clustered_{barcode}.fasta")
-                params:
-                    threads = config["threads"]
+                threads: 2
                 conda:
                     "ezpore_conda.yaml"
                 log:
                     "logs/vsearch_rereplicate_{barcode}.log"
                 shell:
                     """
-                    vsearch --rereplicate {input} --relabel sequence --output {output} --threads {params.threads}
+                    vsearch --rereplicate {input} --relabel sequence --output {output} --threads {threads}
                     """
 
             rule move_emu_cluster:  #temporarily moves files as input for vsearch
@@ -476,6 +471,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                     """
                     cp {input} {output}
                     """
+
         if config["classifier"] == "vsearch" and config["OTU"] is False:
              rule move_vsearch_cluster:  #temporarily moves files as input for vsearch
                 input:
@@ -590,14 +586,14 @@ if config["classifier"] == "vsearch":
                 "vsearch_input/merged_barcodes.fasta"
             output:
                 maybe_temp("vsearch_input/otus_renamed.fasta")
+            threads: 4
             params:
-                cluster_perc=cluster_perc,
-                threads = config["threads"]
+                cluster_perc=cluster_perc
             conda:
                 "ezpore_conda.yaml"
             shell:
                 """
-                vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both --threads {params.threads}
+                vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both --threads {threads}
                 """
 
 
@@ -607,14 +603,14 @@ if config["classifier"] == "vsearch":
                 reads="vsearch_input/merged_barcodes.fasta"
             output:
                 "results/otu_table.tsv"
+            threads: 4
             params:
-                cluster_perc=cluster_perc,
-                threads = config["threads"]
+                cluster_perc=cluster_perc
             conda:
                 "ezpore_conda.yaml"
             shell:
                 """
-                vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only --threads {params.threads}
+                vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only --threads {threads}
                 """
 
         rule tax_id_otus_vsearch:
@@ -622,10 +618,10 @@ if config["classifier"] == "vsearch":
                 fasta="vsearch_input/otus_renamed.fasta",
                 db_path=database
             output:
-                "results/otu_taxonomy.tsv",
+                "results/otu_taxonomy.tsv"
+            threads: 4
             params:
-                id=config["vsearch_id"],
-                threads=config["threads"]
+                id=config["vsearch_id"]
             conda:
                 "ezpore_conda.yaml"
             shell:
@@ -666,18 +662,19 @@ if config["classifier"] == "vsearch":
                 fasta = "classifier_input/{barcode}.fasta",
                 db_path = database
             output:
-                "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv",
+                "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
+            threads: 2
             params:
-                id=config["vsearch_id"],
-                threads=config["threads"]
+                id=config["vsearch_id"]
             resources:
                 classifier_slots = 1
             conda:
                 "ezpore_conda.yaml"
             shell:
                 """
-                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {params.threads}
+                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads}
                 """
+
         import glob
         import os
         import pandas as pd
