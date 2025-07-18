@@ -19,7 +19,7 @@ Authors: Ids Willemsen, Robbert van Himbeeck (shared first-author)
 5) cluster reads (vsearch)
 6) read classification (emu/vsearch)
 
-<img src="ezpore_Diagram.png" alt="image info" width="70%">
+<img src="Diagram.png" alt="image info" width="70%">
 
 ## Installation & prerequisites
 
@@ -76,10 +76,10 @@ To 'install' `ezpore`:
    3. barcode_files.txt
    4. ezpore_conda.yaml
    5. A non-demultiplexed fastq or a folder called 'demux' containing demultiplexed files!
-8) Finally, run the `ezpore` pipeline with the command, please be nice if you are running on a cluster/server:
+8) Finally, run the `ezpore` pipeline with the command, consider changing the classifier slots and cores based on your available RAM/threads:
 
 ```
-snakemake --snakefile snakefile.smk --use-conda --cores all  
+snakemake --snakefile snakefile.smk --use-conda --cores all --resources classifier_slots=6
 ```
 
 # The settingsfile
