@@ -7,14 +7,12 @@ trim_primers: False
 primer_error_rate: 0.2 #maximum ratio of error used when trimming primers with cutadapt
 clustering: False
 cluster_perc: 0.97 #percent identity used for clustering with vsearch
-threads: 24
 group: 16S_bac #18_nem, 16S_bac, ITS_fun or other - use ITS_fun in case you want to use ITS extract (with a custom database)
 barcode_file: barcode_files.txt #path to the file including your barcodes
 input_file: test_dataset_16S.fastq #path to query file (in case of no demultiplexing)
 forward_primer: AGAGTTTGATCMTGGCTCAG 
 reverse_primer: AAGTCGTAACAAGGTAACCG
-classifier: emu #emu or vsearch
-classifier_slots: 10 #max number of classifier instances (usually limited by RAM/database size)
+classifier: vsearch #emu or vsearch - we recommend using vsearch
 min_abundance: 0.0001 #minimum abundance in the resulting OTU table by emu
 rank: species #taxonomy at which emu will collapse the taxonomy of your OTU table
 vsearch_id: 0.95 #minimum percent identity used by vsearch
