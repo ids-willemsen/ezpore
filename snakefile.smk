@@ -444,46 +444,33 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {threads} \
                     --consout {output}
                 """
-        if config["classifier"] == "emu":
-            rule vsearch_rereplicate: #rereplicates with vsearch
-                input:
-                    "clustered/clustered_{barcode}.fasta"
-                output:
-                    maybe_temp("clustered_rerep/rerep_clustered_{barcode}.fasta")
-                threads: 2
-                conda:
-                    "ezpore_conda.yaml"
-                log:
-                    "logs/vsearch_rereplicate_{barcode}.log"
-                shell:
-                    """
-                    vsearch --rereplicate {input} --relabel sequence --output {output} --threads {threads}
-                    """
 
-            rule move_emu_cluster:  #temporarily moves files as input for vsearch
-                input:
-                    "clustered_rerep/rerep_clustered_{barcode}.fasta"
-                output:
-                    maybe_temp("classifier_input/{barcode}.fasta")
-                conda:
-                    "ezpore_conda.yaml"
-                shell:
-                    """
-                    cp {input} {output}
-                    """
+        rule vsearch_rereplicate: #rereplicates with vsearch
+            input:
+                "clustered/clustered_{barcode}.fasta"
+            output:
+                maybe_temp("clustered_rerep/rerep_clustered_{barcode}.fasta")
+            threads: 2
+            conda:
+                "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_rereplicate_{barcode}.log"
+            shell:
+                """
+                vsearch --rereplicate {input} --relabel sequence --output {output} --threads {threads}
+                """
 
-        if config["classifier"] == "vsearch" and config["OTU"] is False:
-             rule move_vsearch_cluster:  #temporarily moves files as input for vsearch
-                input:
-                    "clustered/clustered_{barcode}.fasta"
-                output:
-                    maybe_temp("classifier_input/{barcode}.fasta")
-                conda:
-                    "ezpore_conda.yaml"
-                shell:
-                    """
-                    cp {input} {output}
-                    """
+        rule move_emu_cluster:  #temporarily moves files as input for vsearch
+            input:
+                "clustered_rerep/rerep_clustered_{barcode}.fasta"
+            output:
+                maybe_temp("classifier_input/{barcode}.fasta")
+            conda:
+                "ezpore_conda.yaml"
+            shell:
+                """
+                cp {input} {output}
+                """
 
 #classification
 if config["classifier"] == "emu":
@@ -663,7 +650,7 @@ if config["classifier"] == "vsearch":
                 db_path = database
             output:
                 "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
-            threads: 2
+            threads: 3
             params:
                 id=config["vsearch_id"]
             resources:
@@ -694,8 +681,6 @@ if config["classifier"] == "vsearch":
                     species_counts = df[1].value_counts().reset_index()
                     species_counts.columns = ['species', 'count']
                     species_counts.to_csv(output[0], sep="\t", index=False, header=False)
-
-
 
         rule combine_counts:
             input:
