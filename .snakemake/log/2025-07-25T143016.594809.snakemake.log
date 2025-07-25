@@ -1,0 +1,9 @@
+Assuming unrestricted shared filesystem usage.
+None
+host: pop-os
+Building DAG of jobs...
+MissingInputException in rule demultiplex in file "/home/ids/git/ezpore/snakefile.smk", line 217:
+Missing input files for rule demultiplex:
+    output: demux/barcode57.fastq, demux/barcode58.fastq, demux/barcode59.fastq, demux/barcode60.fastq, dorado-0.8.3-linux-x64.tar.gz, dorado-0.8.3-linux-x64
+    affected files:
+        test_dataset_16S.fastq

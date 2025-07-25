@@ -432,7 +432,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 "vsearch_input/{barcode}.fastq"
             output:
                 maybe_temp("clustered/clustered_{barcode}.fasta")
-            threads: 2
+            threads: 4
             params:
                 cluster_perc = config["cluster_perc"]
             conda:
