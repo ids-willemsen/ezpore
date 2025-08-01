@@ -668,7 +668,7 @@ if config["classifier"] == "vsearch":
             conda:
                 "ezpore_conda.yaml"
             log:
-                "logs/vsearch_class.log"
+                "logs/vsearch_perbarcode/vsearch_class_{barcode}.log"
             shell:
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
