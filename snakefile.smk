@@ -234,7 +234,7 @@ if config.get("demultiplex", None) is True:  # Only run if demultiplexing is ena
                 --kit-name EXP-NBD196 \
                 --emit-fastq \
                 --output-dir {params.demux_dir} \
-                {input.fastq}
+                {input.fastq} > {log} 2>&1
 
             # Rename files to barcodeXX.fastq
             for file in {params.demux_dir}/*_barcode*.fastq; do
@@ -284,7 +284,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         quality = config["quality"]
     shell:
         """
-        NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output}
+        NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output} > {log} 2>&1
         """
 
 if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group"] == "other":
@@ -300,7 +300,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
                         "ezpore_conda.yaml"
                     shell:
                         """
-                        seqtk seq -A {input} > {output}
+                        seqtk seq -A {input} > {output} > {log} 2>&1
                         """
 
             if config["classifier"] == "vsearch" and config['OTU'] is True:
@@ -347,7 +347,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
             shell:
                 """
                 cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {threads} \
-                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output}
+                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output} > {log} 2>&1
                 """
 
         if config.get("clustering", None) is True:
@@ -387,7 +387,7 @@ if config["group"] == "ITS_fun": #extracts ITS for fungi
         log:
             "logs/itsexpress_{barcode}.log"
         shell:
-            "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {threads}"
+            "itsxpress --fastq {input.fastq} --single_end --outfile {output} --region ALL --threads {threads} > {log} 2>&1"
 
     if config['classifier'] in ['vsearch', 'emu'] and config['OTU'] is False:
         if config.get("clustering",None) is True:
@@ -442,7 +442,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
             shell:
                 """
                 vsearch --cluster_fast {input} --id {params.cluster_perc} --sizeout --threads {threads} \
-                    --consout {output}
+                    --consout {output} > {log} 2>&1
                 """
 
         rule vsearch_rereplicate: #rereplicates with vsearch
@@ -457,7 +457,7 @@ if config.get("clustering", None) is True: #!= FALSE as cluster_perc can range b
                 "logs/vsearch_rereplicate_{barcode}.log"
             shell:
                 """
-                vsearch --rereplicate {input} --relabel sequence --output {output} --threads {threads}
+                vsearch --rereplicate {input} --relabel sequence --output {output} --threads {threads} > {log} 2>&1
                 """
 
         rule move_emu_cluster:  #temporarily moves files as input for vsearch
@@ -492,6 +492,8 @@ if config["classifier"] == "emu":
             min_abundance = config["min_abundance"]
         conda:
             "ezpore_conda.yaml"
+        log:
+            "logs/emu.log"
         resources:
             emu_slots = config["classifier_slots"]
         log:
@@ -499,7 +501,7 @@ if config["classifier"] == "emu":
         shell:
             """
             emu abundance {input.fasta} --db {input.db_path} --keep-counts --min-abundance {params.min_abundance} \
-                --type map-ont --threads {params.threads}
+                --type map-ont --threads {params.threads} > {log} 2>&1
             """
 
     rule emu_combine: #combines results into the final OTU table
@@ -512,10 +514,12 @@ if config["classifier"] == "emu":
             rank = config["rank"]
         conda:
             "ezpore_conda.yaml"
+        log:
+            "logs/emu_combine.log"
         shell:
             """
-            emu combine-outputs results {params.rank} --counts
-            emu combine-outputs results {params.rank}
+            emu combine-outputs results {params.rank} --counts > {log} 2>&1
+            emu combine-outputs results {params.rank} > {log} 2>&1
             """
 
 if config["classifier"] == "vsearch":
@@ -578,9 +582,11 @@ if config["classifier"] == "vsearch":
                 cluster_perc=cluster_perc
             conda:
                 "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_otu_cluster.log"
             shell:
                 """
-                vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both --threads {threads}
+                vsearch --cluster_fast {input} --id {params.cluster_perc} --centroids {output} --uc vsearch_input/clusters.uc --relabel otu --strand both --threads {threads} > {log} 2>&1
                 """
 
 
@@ -595,9 +601,11 @@ if config["classifier"] == "vsearch":
                 cluster_perc=cluster_perc
             conda:
                 "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_class_reads_otu.log"
             shell:
                 """
-                vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only --threads {threads}
+                vsearch --usearch_global {input.reads} --db {input.otus} --id {params.cluster_perc} --otutabout {output} --top_hits_only --threads {threads} > {log} 2>&1
                 """
 
         rule tax_id_otus_vsearch:
@@ -611,6 +619,8 @@ if config["classifier"] == "vsearch":
                 id=config["vsearch_id"]
             conda:
                 "ezpore_conda.yaml"
+            log:
+                "logs/vsearch_class_otu.log"
             shell:
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {params.threads}
@@ -657,6 +667,8 @@ if config["classifier"] == "vsearch":
                 classifier_slots = 1
             conda:
                 "ezpore_conda.yaml"
+            log:
+                logs/"vsearch_class.log"
             shell:
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads}
