@@ -284,7 +284,7 @@ rule quality_filtering: #runs nanofilt to filter for quality and length
         quality = config["quality"]
     shell:
         """
-        NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output} > {log} 2>&1
+        NanoFilt --length {params.min_length} --maxlength {params.max_length} -q {params.quality} {input.fastq} > {output} 2> {log}
         """
 
 if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group"] == "other":
