@@ -347,7 +347,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
             shell:
                 """
                 cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {threads} \
-                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output} > 2> {log}
+                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output} 2> {log}
                 """
 
         if config.get("clustering", None) is True:
