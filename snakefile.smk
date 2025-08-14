@@ -623,7 +623,7 @@ if config["classifier"] == "vsearch":
                 "logs/vsearch_class_otu.log"
             shell:
                 """
-                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {params.threads} > {log} 2>&1
+                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
                 """
 
         rule combine_otu_table_and_taxonomy:
