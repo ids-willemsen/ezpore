@@ -6,6 +6,8 @@ Authors: Ids Willemsen, Robbert van Himbeeck (shared first-author)
 
 ⚠️ **Disclaimer:** The 18S nematode database is provided as-is, without warranties. Use of ezpore constitutes agreement with the [Terms of Use](TERMS_OF_USE.md).
 
+**We currently recommend using Vsearch over emu. For more information please check this thread: https://github.com/treangenlab/emu/issues/74**
+
 ## About
 
 `ezpore` is a single-command pipeline to process bacterial (full 16S), fungal (full ITS) or Nematodal (full 18S) reads obtained by Nanopore sequencing.
