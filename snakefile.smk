@@ -673,10 +673,10 @@ if config["classifier"] == "vsearch":
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
                 """
-
         import glob
         import os
         import pandas as pd
+        import re
 
         rule count_species:
             input:
@@ -684,15 +684,43 @@ if config["classifier"] == "vsearch":
             output:
                 temp("counts/barcode_{barcode}.tsv")
             run:
-                if os.stat(input[0]).st_size == 0:
-                    # Write an empty count file
+                file_size = os.stat(input[0]).st_size
+
+                if file_size == 0:
+                    # Write proper header for empty files
                     with open(output[0], 'w') as f:
-                        pass  # creates an empty file
+                        f.write("species\tcount\n")
                 else:
-                    df = pd.read_csv(input[0], sep="\t", header=None, usecols=[1])
-                    species_counts = df[1].value_counts().reset_index()
-                    species_counts.columns = ['species', 'count']
-                    species_counts.to_csv(output[0], sep="\t", index=False, header=False)
+                    try:
+                        # Read without header
+                        df = pd.read_csv(input[0], sep="\t", header=None)
+
+                        if df.empty or len(df.columns) < 2:
+                            # File is malformed, write empty with header
+                            with open(output[0], 'w') as f:
+                                f.write("species\tcount\n")
+                        else:
+                            # Column 1 contains the taxonomy string
+                            # Extract species name: s:species_name
+                            def extract_species(tax_string):
+                                if pd.isna(tax_string):
+                                    return "Unknown"
+                                match = re.search(r's:([^,;]+)', str(tax_string))
+                                return match.group(1) if match else "Unknown"
+
+                            df['species'] = df[1].apply(extract_species)
+
+                            # Count occurrences of each species
+                            species_counts = df['species'].value_counts().reset_index()
+                            species_counts.columns = ['species', 'count']
+
+                            # Save with header
+                            species_counts.to_csv(output[0], sep="\t", index=False, header=True)
+                    except Exception as e:
+                        # If anything fails, write empty file with header
+                        with open(output[0], 'w') as f:
+                            f.write("species\tcount\n")
+                        print(f"Warning: Error processing {input[0]}: {e}")
 
         rule combine_counts:
             input:
@@ -702,8 +730,36 @@ if config["classifier"] == "vsearch":
             run:
                 dfs = []
                 for file in input:
-                    barcode = os.path.basename(file).split(".")[0]
-                    df = pd.read_csv(file, sep="\t", header=None, names=["species", barcode])
-                    dfs.append(df.set_index("species"))
-                combined = pd.concat(dfs, axis=1).fillna(0).astype(int)
-                combined.to_csv(output[0], sep="\t")
+                    # Extract clean barcode name
+                    barcode = os.path.basename(file).replace("barcode_", "").replace(".tsv", "")
+
+                    try:
+                        # Read count file
+                        df = pd.read_csv(file, sep="\t")
+
+                        # Skip empty files
+                        if df.empty:
+                            continue
+
+                        # Ensure 'species' column exists
+                        if 'species' not in df.columns:
+                            print(f"Warning: 'species' column not found in {file}")
+                            print(f"Columns: {df.columns.tolist()}")
+                            continue
+
+                        df = df.set_index("species")
+                        df.columns = [barcode]
+                        dfs.append(df)
+                    except Exception as e:
+                        print(f"Warning: Error reading {file}: {e}")
+                        continue
+
+
+                if dfs:
+                    # Concatenate all barcodes
+                    combined = pd.concat(dfs, axis=1, sort=True).fillna(0).astype(int)
+                    combined.to_csv(output[0], sep="\t")
+                else:
+                    # No valid data, create empty output
+                    with open(output[0], 'w') as f:
+                        f.write("species\n")
