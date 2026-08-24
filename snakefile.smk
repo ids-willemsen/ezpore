@@ -673,54 +673,52 @@ if config["classifier"] == "vsearch":
                 """
                 vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
                 """
-        import glob
-        import os
-        import pandas as pd
-        import re
 
-        rule count_species:
+
+        import os
+        import re
+        import csv
+        from collections import defaultdict
+        import pandas as pd
+
+
+        rule classify_reads:
             input:
                 "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
             output:
-                temp("counts/barcode_{barcode}.tsv")
+                "counts/barcode_{barcode}.tsv"
             run:
-                file_size = os.stat(input[0]).st_size
+                TAX_RE = re.compile(r"g:([^,\t]+)")
+                best_hit = {}  # read_id -> (pident, species)
 
-                if file_size == 0:
-                    # Write proper header for empty files
-                    with open(output[0], 'w') as f:
-                        f.write("species\tcount\n")
-                else:
-                    try:
-                        # Read without header
-                        df = pd.read_csv(input[0], sep="\t", header=None)
+                with open(input[0], newline="") as f:
+                        reader = csv.reader(f, delimiter="\t")
+                        for row in reader:
+                                if len(row) < 3:
+                                        continue
+                                read_id, subject_tax, pident_str = row[0], row[1], row[2]
+                                try:
+                                        pident = float(pident_str)
+                                except ValueError:
+                                        continue
+                                m = TAX_RE.search(subject_tax)
+                                if not m:
+                                        continue
+                                species = m.group(1).strip()
+                                prev = best_hit.get(read_id)
+                                if prev is None or pident > prev[0]:
+                                        best_hit[read_id] = (pident, species)
 
-                        if df.empty or len(df.columns) < 2:
-                            # File is malformed, write empty with header
-                            with open(output[0], 'w') as f:
-                                f.write("species\tcount\n")
-                        else:
-                            # Column 1 contains the taxonomy string
-                            # Extract species name: s:species_name
-                            def extract_species(tax_string):
-                                if pd.isna(tax_string):
-                                    return "Unknown"
-                                match = re.search(r's:([^,;]+)', str(tax_string))
-                                return match.group(1) if match else "Unknown"
+                counts = defaultdict(int)
+                for _pident, species in best_hit.values():
+                        counts[species] += 1
 
-                            df['species'] = df[1].apply(extract_species)
+                with open(output[0], "w", newline="") as out:
+                        writer = csv.writer(out, delimiter="\t", lineterminator="\n")
+                        writer.writerow(["species", "count"])
+                        for species, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+                                writer.writerow([species, count])
 
-                            # Count occurrences of each species
-                            species_counts = df['species'].value_counts().reset_index()
-                            species_counts.columns = ['species', 'count']
-
-                            # Save with header
-                            species_counts.to_csv(output[0], sep="\t", index=False, header=True)
-                    except Exception as e:
-                        # If anything fails, write empty file with header
-                        with open(output[0], 'w') as f:
-                            f.write("species\tcount\n")
-                        print(f"Warning: Error processing {input[0]}: {e}")
 
         rule combine_counts:
             input:
@@ -730,36 +728,27 @@ if config["classifier"] == "vsearch":
             run:
                 dfs = []
                 for file in input:
-                    # Extract clean barcode name
-                    barcode = os.path.basename(file).replace("barcode_", "").replace(".tsv", "")
+                        barcode = os.path.basename(file).replace("barcode_", "").replace(".tsv", "")
+                        try:
+                                df = pd.read_csv(file, sep="\t")
+                                if df.empty:
+                                        continue
+                                if "species" not in df.columns:
+                                        print(f"Warning: 'species' column not found in {file}")
+                                        print(f"Columns: {df.columns.tolist()}")
+                                        continue
+                                count_col = [c for c in df.columns if c != "species"][0]
+                                df = df.groupby("species", as_index=True)[count_col].sum().to_frame()
+                                df.columns = [barcode]
+                                dfs.append(df)
+                        except Exception as e:
+                                print(f"Warning: Error reading {file}: {e}")
+                                continue
 
-                    try:
-                        # Read count file
-                        df = pd.read_csv(file, sep="\t")
-
-                        # Skip empty files
-                        if df.empty:
-                            continue
-
-                        # Ensure 'species' column exists
-                        if 'species' not in df.columns:
-                            print(f"Warning: 'species' column not found in {file}")
-                            print(f"Columns: {df.columns.tolist()}")
-                            continue
-
-                        df = df.set_index("species")
-                        df.columns = [barcode]
-                        dfs.append(df)
-                    except Exception as e:
-                        print(f"Warning: Error reading {file}: {e}")
-                        continue
-
-
+                os.makedirs(os.path.dirname(output[0]), exist_ok=True)
                 if dfs:
-                    # Concatenate all barcodes
-                    combined = pd.concat(dfs, axis=1, sort=True).fillna(0).astype(int)
-                    combined.to_csv(output[0], sep="\t")
+                        combined = pd.concat(dfs, axis=1, sort=True).fillna(0).astype(int)
+                        combined.to_csv(output[0], sep="\t")
                 else:
-                    # No valid data, create empty output
-                    with open(output[0], 'w') as f:
-                        f.write("species\n")
+                        with open(output[0], "w") as f:
+                                f.write("species\n")
