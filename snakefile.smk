@@ -680,15 +680,28 @@ if config["classifier"] == "vsearch":
         import csv
         from collections import defaultdict
         import pandas as pd
+        
+        RANK_PREFIX = {
+            "domain": "d:",
+            "phylum": "p:",
+            "class": "c:",
+            "order": "o:",
+            "family": "f:",
+            "genus": "g:",
+            "species": "s:",
+        }
 
+        rank_matcher = RANK_PREFIX[config["rank"]]
 
         rule classify_reads:
             input:
                 "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
             output:
                 "counts/barcode_{barcode}.tsv"
+            params:
+                lvl = rank_matcher
             run:
-                TAX_RE = re.compile(r"g:([^,\t]+)")
+                TAX_RE = re.compile(rf"{params.lvl}([^,\t]+)")
                 best_hit = {}  # read_id -> (pident, species)
 
                 with open(input[0], newline="") as f:
