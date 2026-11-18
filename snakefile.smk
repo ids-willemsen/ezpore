@@ -347,7 +347,7 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
             shell:
                 """
                 cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {threads} \
-                -g {params.fw_primer} -a {params.rv_primer} --times 2 --quiet {input.fastq} > {output} 2> {log}
+                -g {params.fw_primer} -a {params.rv_primer} --times 2 {input.fastq} -o {output} > {log}
                 """
 
         if config.get("clustering", None) is True:
@@ -701,26 +701,24 @@ if config["classifier"] == "vsearch":
             params:
                 lvl = rank_matcher
             run:
-                TAX_RE = re.compile(rf"{params.lvl}([^,\t]+)")
-                best_hit = {}  # read_id -> (pident, species)
+                TAX_RE = re.compile(rf"(?:^|[,;=]){re.escape(params.lvl)}([^,;\t]+)")
+                best_hit = {}  # read_id -> (pident, taxon)
 
                 with open(input[0], newline="") as f:
-                        reader = csv.reader(f, delimiter="\t")
-                        for row in reader:
-                                if len(row) < 3:
-                                        continue
-                                read_id, subject_tax, pident_str = row[0], row[1], row[2]
-                                try:
-                                        pident = float(pident_str)
-                                except ValueError:
-                                        continue
-                                m = TAX_RE.search(subject_tax)
-                                if not m:
-                                        continue
-                                species = m.group(1).strip()
-                                prev = best_hit.get(read_id)
-                                if prev is None or pident > prev[0]:
-                                        best_hit[read_id] = (pident, species)
+                    reader = csv.reader(f, delimiter="\t")
+                    for row in reader:
+                        if len(row) < 3:
+                            continue
+                        read_id, subject_tax, pident_str = row[0], row[1], row[2]
+                        try:
+                            pident = float(pident_str)
+                        except ValueError:
+                            continue
+                        m = TAX_RE.search(subject_tax)
+                        taxon = m.group(1).strip() if m else "Unknown"
+                        prev = best_hit.get(read_id)
+                        if prev is None or pident > prev[0]:
+                            best_hit[read_id] = (pident, taxon)
 
                 counts = defaultdict(int)
                 for _pident, species in best_hit.values():

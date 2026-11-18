@@ -22,6 +22,6 @@ OTU: False #Choice to identify species per cluster OTU (very slow)
 
 
 ####metabarcoding primers#####
-#18S nematodes (van himbeeck et al.) - forward primer: ctcaaagattaagccatgc; reverse primer: gctaccttgttacgactttt
+#18S nematodes (van himbeeck et al.) - forward primer: CTCAAAGATTAAGCCATGC; reverse primer: AAAGTCGTAACAAGGTAGC
 #16S bacteria - forward primer: AGAGTTTGATCMTGGCTCAG; reverse primer: AAGTCGTAACAAGGTAACCG
 #note that ITS primer trimming is not needed due to ITS extraction with ITS extract
