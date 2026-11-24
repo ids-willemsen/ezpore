@@ -343,11 +343,12 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
             params:
                 primer_error_rate = config["primer_error_rate"],
                 fw_primer = config["forward_primer"],
-                rv_primer = config["reverse_primer"]
+                rv_primer = config["reverse_primer"],
+                overlap = config["primer_overlap"]
             shell:
                 """
-                cutadapt --error-rate {params.primer_error_rate} --match-read-wildcards --revcomp --cores {threads} \
-                -g {params.fw_primer} -a {params.rv_primer} --times 2 {input.fastq} -o {output} > {log}
+                cutadapt --error-rate {params.primer_error_rate} -O {params.overlap} --match-read-wildcards --revcomp --cores {threads} \
+                -g "{params.fw_primer}...{params.rv_primer}"--times 1 {input.fastq} -o {output} > {log}
                 """
 
         if config.get("clustering", None) is True:
@@ -616,14 +617,15 @@ if config["classifier"] == "vsearch":
                 "results/otu_taxonomy.tsv"
             threads: 4
             params:
-                id=config["vsearch_id"]
+                id=config["vsearch_id"],
+                cov = config["vsearch_cov"]
             conda:
                 "ezpore_conda.yaml"
             log:
                 "logs/vsearch_class_otu.log"
             shell:
                 """
-                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
+                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} --query_cov {params.cov} > {log} 2>&1
                 """
 
         rule combine_otu_table_and_taxonomy:
@@ -662,7 +664,8 @@ if config["classifier"] == "vsearch":
                 "vsearch_per_barcode/otu_taxonomy_{barcode}.tsv"
             threads: 3
             params:
-                id=config["vsearch_id"]
+                id=config["vsearch_id"],
+                cov=config["vsearch_cov"]
             resources:
                 classifier_slots = 1
             conda:
@@ -671,7 +674,7 @@ if config["classifier"] == "vsearch":
                 "logs/vsearch_perbarcode/vsearch_class_{barcode}.log"
             shell:
                 """
-                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} > {log} 2>&1
+                vsearch --usearch_global {input.fasta} --db {input.db_path} --id {params.id} --blast6out {output} --top_hits_only --strand both --threads {threads} --query_cov {params.cov} > {log} 2>&1
                 """
 
 
