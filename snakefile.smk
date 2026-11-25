@@ -344,11 +344,12 @@ if config["group"] == "16S_bac" or config["group"] == "18S_nem" or config["group
                 primer_error_rate = config["primer_error_rate"],
                 fw_primer = config["forward_primer"],
                 rv_primer = config["reverse_primer"],
-                overlap = config["primer_overlap"]
+                overlap = config["primer_overlap"],
+                min_length = config["min"]
             shell:
                 """
                 cutadapt --error-rate {params.primer_error_rate} -O {params.overlap} --match-read-wildcards --revcomp --cores {threads} \
-                -g "{params.fw_primer}...{params.rv_primer}" --times 1 {input.fastq} -o {output} > {log}
+                -g "{params.fw_primer}...{params.rv_primer}" -m {min_length} --times 1 {input.fastq} -o {output} > {log}
                 """
 
         if config.get("clustering", None) is True:
