@@ -686,16 +686,12 @@ if config["classifier"] == "vsearch":
         import pandas as pd
         
         RANK_PREFIX = {
-            "domain": "d:",
-            "phylum": "p:",
-            "class": "c:",
-            "order": "o:",
-            "family": "f:",
-            "genus": "g:",
-            "species": "s:",
+            "domain": "d:", "phylum": "p:", "class": "c:", "order": "o:",
+            "family": "f:", "genus": "g:", "species": "s:",
+            "all": None,
         }
-
-        rank_matcher = RANK_PREFIX[config["rank"]]
+        rank = config["rank"]
+        rank_matcher = RANK_PREFIX[rank]
 
         rule classify_reads:
             input:
@@ -703,10 +699,13 @@ if config["classifier"] == "vsearch":
             output:
                 "counts/barcode_{barcode}.tsv"
             params:
-                lvl = rank_matcher
+                lvl = rank_matcher,
+                rank = rank
             run:
-                TAX_RE = re.compile(rf"(?:^|[,;=]){re.escape(params.lvl)}([^,;\t]+)")
-                best_hit = {}  # read_id -> (pident, taxon)
+                TAX_RE = None
+                if params.lvl is not None:
+                    TAX_RE = re.compile(rf"(?:^|[,;=]){re.escape(params.lvl)}([^,;\t]+)")
+                best_hit = {}
 
                 with open(input[0], newline="") as f:
                     reader = csv.reader(f, delimiter="\t")
@@ -718,21 +717,27 @@ if config["classifier"] == "vsearch":
                             pident = float(pident_str)
                         except ValueError:
                             continue
-                        m = TAX_RE.search(subject_tax)
-                        taxon = m.group(1).strip() if m else "Unknown"
+
+                        if TAX_RE is None:   # "all": full lineage, no Unknown
+                            taxon = subject_tax.split("tax=", 1)[-1].strip()
+                        else:
+                            m = TAX_RE.search(subject_tax)
+                            taxon = m.group(1).strip() if m else "Unknown"
+
                         prev = best_hit.get(read_id)
                         if prev is None or pident > prev[0]:
                             best_hit[read_id] = (pident, taxon)
 
                 counts = defaultdict(int)
-                for _pident, species in best_hit.values():
-                        counts[species] += 1
+                for _pident, taxon in best_hit.values():
+                    counts[taxon] += 1
 
                 with open(output[0], "w", newline="") as out:
-                        writer = csv.writer(out, delimiter="\t", lineterminator="\n")
-                        writer.writerow(["species", "count"])
-                        for species, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
-                                writer.writerow([species, count])
+                    writer = csv.writer(out, delimiter="\t", lineterminator="\n")
+                    writer.writerow([params.rank, "count"])
+                    for taxon, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+                        writer.writerow([taxon, count])
+
 
 
         rule combine_counts:

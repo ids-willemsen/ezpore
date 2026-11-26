@@ -15,7 +15,7 @@ forward_primer: AGAGTTTGATCMTGGCTCAG
 reverse_primer: AAGTCGTAACAAGGTAACCG
 classifier: vsearch #emu or vsearch - we recommend using vsearch
 min_abundance: 0.0001 #minimum abundance in the resulting OTU table by emu
-rank: species #taxonomy at which emu will collapse the taxonomy of your OTU table
+rank: species #taxonomy at which the classifier will collapse the taxonomy of your OTU table (use 'all' if collapse isn't necessary)
 vsearch_id: 0.95 #minimum percent identity used by vsearch
 vsearch_cov: 0.8 #minimum percent overlap of a read matched to your database
 custom_database: False
